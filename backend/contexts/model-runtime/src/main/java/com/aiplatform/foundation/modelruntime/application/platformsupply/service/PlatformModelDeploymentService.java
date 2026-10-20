@@ -50,13 +50,14 @@ public final class PlatformModelDeploymentService {
     private final Clock clock;
     private final EntityIdGenerator identifiers;
     private final Duration verificationValidity;
+    private final boolean writesAvailable;
 
     public PlatformModelDeploymentService(
             PlatformModelDeploymentRepository deployments, PlatformProviderConnectionRepository connections,
             PlatformProviderConnectionPublicationRepository publications,
             PlatformProviderModelDiscoveryLookup discoveries, PlatformModelProbeProviderService probeProvider,
             PlatformModelDeploymentVerificationStore verificationStore, Clock clock,
-            EntityIdGenerator identifiers, Duration verificationValidity) {
+            EntityIdGenerator identifiers, Duration verificationValidity, boolean writesAvailable) {
         this.deployments = Objects.requireNonNull(deployments, "平台模型部署仓储不能为空");
         this.connections = Objects.requireNonNull(connections, "平台供应商连接仓储不能为空");
         this.publications = Objects.requireNonNull(publications, "平台连接发布仓储不能为空");
@@ -66,6 +67,7 @@ public final class PlatformModelDeploymentService {
         this.clock = Objects.requireNonNull(clock, "时钟不能为空");
         this.identifiers = Objects.requireNonNull(identifiers, "标识生成器不能为空");
         this.verificationValidity = requirePositive(verificationValidity);
+        this.writesAvailable = writesAvailable;
     }
 
     /**
@@ -76,18 +78,56 @@ public final class PlatformModelDeploymentService {
     public CreatePlatformModelDeploymentResult create(CreatePlatformModelDeploymentCommand command) {
         Objects.requireNonNull(command, "平台模型部署创建命令不能为空");
         requirePermission(command.context());
+        requireWrites();
         var connection = loadVerifiedConnection(command.providerConnectionId(), command.expectedConnectionVersion());
         requirePublishedConnection(connection);
-        var candidate = discoveries.findCurrentCandidate(connection.id(), connection.version(), command.modelCode(),
+        var snapshot = discoveries.findCurrentSnapshot(connection.id(), connection.version(), command.modelCode(),
                 command.modelType(), clock.instant()).orElseThrow(() -> new IllegalStateException("平台模型发现候选不可用"));
-        if (!candidate.capabilities().containsAll(command.capabilities())) {
-            throw new IllegalStateException("平台模型发现候选不覆盖声明能力");
+        var candidate = snapshot.candidate();
+        if (candidate.classification() == com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformModelCandidateClassification.REQUIRES_ADMIN_CONFIRMATION) {
+            if (connection.preset() == null || !connection.preset().capability().equals(command.modelType().name()))
+                throw new IllegalArgumentException("确认类型必须属于连接声明的能力范围");
+            candidate = new com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformDiscoveredModelCandidate(
+                    candidate.modelCode(), command.modelType(), java.util.Set.of(com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapability.valueOf(command.modelType().name())),
+                    com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformModelCandidateClassification.CONFIRMED_BY_ADMIN, candidate.displayName());
         }
-        var deployment = PlatformModelDeployment.create(new PlatformModelDeploymentId(identifiers.nextId()), connection.id(),
+        if (candidate.modelType() != command.modelType() || !candidate.capabilities().equals(command.capabilities()))
+            throw new IllegalArgumentException("平台模型发现候选不覆盖声明能力");
+        var inputs = new com.aiplatform.foundation.modelruntime.domain.platformsupply.model.deployment.PlatformModelDeploymentInputs(
+                command.parameterSource(), connection.region(), command.rerankCandidateLimit(),
+                command.plannedTenantIds().stream().map(Long::parseLong).collect(java.util.stream.Collectors.toUnmodifiableSet()),
+                snapshot.discoveryId(), candidate.displayName(), candidate.classification(), command.context().subjectId().value(), clock.instant());
+        var deployment = PlatformModelDeployment.createDraft(new PlatformModelDeploymentId(identifiers.nextId()), connection.id(),
                 connection.version(), command.modelCode(), command.displayName(), command.modelType(), command.capabilities(),
-                command.contextWindow(), command.outputLimit(), command.embeddingDimension(), clock.instant());
+                command.contextWindow(), command.outputLimit(), command.embeddingDimension(), clock.instant(), inputs);
         var outcome = deployments.create(new PlatformModelDeploymentCreation(deployment, command.idempotencyKey(), fingerprint(command)));
         return new CreatePlatformModelDeploymentResult(toView(outcome.deployment(), connection, clock.instant()), outcome.replayed());
+    }
+
+    /** 只读辅助摘要；缺失不能补零或推导写入可用性。 */
+    public com.aiplatform.foundation.modelruntime.application.platformsupply.dto.deployment.PlatformDeploymentPageFacts facts(PlatformRequestContext context) {
+        requirePermission(context);
+        return new com.aiplatform.foundation.modelruntime.application.platformsupply.dto.deployment.PlatformDeploymentPageFacts(writesAvailable, deployments.counts());
+    }
+
+    /** 只返回已发布连接当前完整发现根的候选，驻留和能力意图来自连接。 */
+    public PageResult<com.aiplatform.foundation.modelruntime.application.platformsupply.dto.deployment.PlatformDeployableModel> options(
+            PlatformRequestContext context, com.aiplatform.foundation.shared.contract.paging.PageQuery page) {
+        requirePermission(context);
+        return discoveries.findDeployableModels(page, clock.instant());
+    }
+
+    private void requireWrites() {
+        if (!writesAvailable) throw new com.aiplatform.foundation.shared.kernel.error.ApplicationException(
+                com.aiplatform.foundation.modelruntime.domain.common.error.ModelRuntimeErrorCode.S2_WRITES_PAUSED);
+    }
+
+    /** 只读取精确对象，禁止扫描列表或返回首项代替指定部署。 */
+    public PlatformModelDeploymentView detail(com.aiplatform.foundation.security.identity.PlatformRequestContext context, String id) {
+        requirePermission(context);
+        var deployment = deployments.findById(PlatformModelDeploymentId.parse(id)).orElseThrow(
+                () -> new com.aiplatform.foundation.modelruntime.application.deployment.exception.ModelDeploymentNotFoundException());
+        return toView(deployment, connections.findById(deployment.providerConnectionId()).orElse(null), clock.instant());
     }
 
     public PageResult<PlatformModelDeploymentView> list(ListPlatformModelDeploymentsQuery query) {
@@ -107,7 +147,10 @@ public final class PlatformModelDeploymentService {
     public ProbePlatformModelDeploymentResult probe(ProbePlatformModelDeploymentCommand command) {
         Objects.requireNonNull(command, "平台模型部署探测命令不能为空");
         requirePermission(command.context());
+        requireWrites();
         var deployment = load(command.modelDeploymentId(), command.expectedVersion());
+        if (deployment.inputs() != null) throw new com.aiplatform.foundation.shared.kernel.error.ApplicationException(
+                com.aiplatform.foundation.modelruntime.domain.common.error.ModelRuntimeErrorCode.PLATFORM_DEPLOYMENT_CONTRACT_PENDING);
         var connection = loadFrozenConnection(deployment);
         var result = probeProvider.probe(new PlatformModelDeploymentProbeRequest(connection.providerKind(), connection.endpoint(),
                 connection.credentialReference(), deployment.modelCode(), deployment.capabilities(), command.timeout()));
@@ -129,7 +172,10 @@ public final class PlatformModelDeploymentService {
     public PlatformModelDeploymentView publish(PublishPlatformModelDeploymentCommand command) {
         Objects.requireNonNull(command, "平台模型部署发布命令不能为空");
         requirePermission(command.context());
+        requireWrites();
         var deployment = load(command.modelDeploymentId(), command.expectedVersion());
+        if (deployment.inputs() != null) throw new com.aiplatform.foundation.shared.kernel.error.ApplicationException(
+                com.aiplatform.foundation.modelruntime.domain.common.error.ModelRuntimeErrorCode.PLATFORM_DEPLOYMENT_CONTRACT_PENDING);
         var connection = loadFrozenConnection(deployment);
         var published = deployment.publish(clock.instant());
         if (!deployments.update(published, command.expectedVersion())) throw new IllegalStateException("平台模型部署修订已变化");
@@ -190,14 +236,16 @@ public final class PlatformModelDeploymentService {
         return value;
     }
 
-    private static PlatformModelDeploymentView toView(PlatformModelDeployment deployment,
+    private PlatformModelDeploymentView toView(PlatformModelDeployment deployment,
             PlatformProviderConnection connection, java.time.Instant now) {
         var availability = availability(deployment, connection, now);
         return new PlatformModelDeploymentView(deployment.id().toString(), deployment.providerConnectionId().toString(),
                 deployment.providerConnectionRevision(), deployment.modelCode(), deployment.displayName(), deployment.modelType().name(),
                 deployment.capabilities(), deployment.contextWindow(), deployment.outputLimit(), deployment.embeddingDimension(),
                 deployment.verificationExpiresAt(), deployment.status().name(), availability.status(), availability.nextStep(),
-                deployment.version(), deployment.createdAt());
+                deployment.version(), deployment.createdAt(), connection == null ? "来源连接暂未取得" : connection.displayName(),
+                com.aiplatform.foundation.modelruntime.application.platformsupply.dto.deployment.PlatformModelDeploymentInputsView.from(deployment.inputs()),
+                deployment.lastVerificationId() == null ? null : deployments.lastVerifiedAt(deployment.id()).orElse(null));
     }
 
     private static Availability availability(PlatformModelDeployment deployment, PlatformProviderConnection connection,
@@ -215,7 +263,9 @@ public final class PlatformModelDeploymentService {
     private static String fingerprint(CreatePlatformModelDeploymentCommand command) {
         try {
             var digest = MessageDigest.getInstance("SHA-256");
-            for (var value : java.util.List.of(command.providerConnectionId(), command.modelCode(), command.displayName(), command.modelType().name(), Integer.toString(command.contextWindow()), Objects.toString(command.outputLimit(), ""), Objects.toString(command.embeddingDimension(), ""))) update(digest, value);
+            for (var value : java.util.List.of(command.providerConnectionId(), command.modelCode(), command.displayName(), command.modelType().name(), Integer.toString(command.contextWindow()), Objects.toString(command.outputLimit(), ""), Objects.toString(command.embeddingDimension(), ""), Long.toString(command.expectedConnectionVersion()),
+                    Objects.toString(command.rerankCandidateLimit(), ""), command.parameterSource(), command.modelConfirmed().toString(), command.context().subjectId().toString())) update(digest, value);
+            command.plannedTenantIds().stream().sorted().forEach(value -> update(digest, value));
             command.capabilities().stream().sorted(Comparator.comparing(Enum::name)).forEach(capability -> update(digest, capability.name()));
             return HexFormat.of().formatHex(digest.digest());
         } catch (NoSuchAlgorithmException exception) { throw new IllegalStateException("当前 JDK 不支持 SHA-256", exception); }

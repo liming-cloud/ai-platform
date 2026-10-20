@@ -2,8 +2,8 @@
 set -euo pipefail
 
 if [[ "${1:-}" == "WP-0019" ]]; then
-  if [[ "$#" != "2" || "${2:-}" != "platform-connection" ]]; then
-    echo "WP-0019 必须明确 SLICE=platform-connection；本入口不代表整包完成，不执行后续切片。" >&2
+  if [[ "$#" != "2" || ( "${2:-}" != "platform-connection" && "${2:-}" != "platform-supply" ) ]]; then
+    echo "WP-0019 必须明确 SLICE=platform-connection 或 SLICE=platform-supply；本入口不代表整包完成，不执行后续切片。" >&2
     exit 2
   fi
   if [[ -n "${SETUP:-}" ]]; then
@@ -15,6 +15,9 @@ if [[ "${1:-}" == "WP-0019" ]]; then
     exit 2
   fi
   readonly MODEL_SCRIPT_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  if [[ "${2}" == "platform-supply" ]]; then
+    exec node "${MODEL_SCRIPT_DIRECTORY}/acceptance-platform-supply.cjs"
+  fi
   exec node "${MODEL_SCRIPT_DIRECTORY}/acceptance-platform-connection.cjs"
 fi
 

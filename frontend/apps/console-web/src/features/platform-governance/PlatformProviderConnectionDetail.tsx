@@ -1,3 +1,4 @@
+import { PlatformModelSupplyNavigation } from "./PlatformModelSupplyNavigation";
 import { Button } from "@fluentui/react-components";
 import { StatePanel } from "@foundation/design-system";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -121,6 +122,7 @@ export function PlatformProviderConnectionDetail({ client, route, onRouteChange 
       <div className="platform-connection-page__copy"><h1 ref={headingRef} tabIndex={-1}>供应商连接探测</h1>
       <div className="platform-connection-object-line">{state === "partial" ? <span>部分完成</span> : state === "disabled" ? <span>暂不可用</span> : connectionStatusLabel(connection)}</div></div>
       <Button appearance="secondary" onClick={() => onRouteChange({ navigationId: "platform-model-supply", task: "connections", page: 1, ...route.directory })}>返回连接目录</Button></header>
+    <PlatformModelSupplyNavigation active="connections" onRouteChange={onRouteChange} />
     <div className={"platform-connection-note" + (failed && state !== "partial" ? " platform-connection-note--danger" : "")} role={state === "partial" ? "status" : undefined}>
       {state === "partial" ? <><p>部分辅助信息暂未取得，暂不能探测或发布。已确认的连接事实保持可读；重新载入后再试。</p>
         <Button appearance="secondary" disabled={busy} onClick={() => void load()}>重新载入</Button></>

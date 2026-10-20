@@ -68,7 +68,7 @@ S2 两页四操作、已接受／待决定事项及逐项验收标准见 [S2 实
     make acceptance-model-provider
     make acceptance-model-deployment
 
-S1 已落地 make acceptance-work-package WP=WP-0019 SLICE=platform-connection，默认只读，创建草稿、真实发现、发布当前修订分别显式选择。入口测试不代表部署通过；本包完成前仍须执行真实数据库/会话、HTTP、生产浏览器及 Compose。S2～S6 与整包入口未实现，缺少基础设施、受控凭据或评测材料明确阻塞，不静默跳过。
+S1 已落地 make acceptance-work-package WP=WP-0019 SLICE=platform-connection，默认只读，创建草稿、真实发现、发布当前修订分别显式选择。入口测试不代表部署通过；本包完成前仍须执行真实数据库/会话、HTTP、生产浏览器及 Compose。S2 已新增 `SLICE=platform-supply` 的默认只读／单次草稿入口，生产验证中；S3～S6 与整包入口未实现，缺少基础设施、受控凭据或评测材料明确阻塞，不静默跳过。
 
 ## 证据
 
@@ -84,7 +84,7 @@ S1 收口验证的前端为 `7b465a2dda50eacc455bfb82f83e6606865b4c62`、三后�
 
 S1 收口记录中的方舟精确连接修订 2、单独授权发布及平台部署／目录／租户授权为 0 的原时点事实保留；本轮不修改数据或重做 S1。Git 忽略的普通 0600 `pwd.txt`、`AccessKey.txt` 继续作为既有受保护来源，S2 沿用其用途边界，不要求重发密码。
 
-**当前前沿：S2 平台供应。** 用户已接受 [S2 三项细化提案](s2-platform-supply.md#三项细化提案已接受)，登记 ADR-0100；原项目候选 `f3216dffe717e194e96fa20b4afee7983a9ff420` 已获用户明确接受，23 项状态测试、84 次页面／24 次表单观察及模拟流程、只读恢复、取消清理的原技术证据保留。前次 `main@3076e4847` 的 [CI](https://github.com/liming-cloud/ai-platform/actions/runs/39282750976) 九步骤已实际 success，排队项消除；当前按已接受固定版本承接草稿写入、精确详情与两页表单，不重复候选接受门禁。
+**当前前沿：S2 平台供应。** 用户已接受 [S2 三项细化提案](s2-platform-supply.md#三项细化提案已接受)，登记 ADR-0100；原项目候选 `f3216dffe717e194e96fa20b4afee7983a9ff420` 已获用户明确接受，23 项状态测试、84 次页面／24 次表单观察及模拟流程、只读恢复、取消清理的原技术证据保留。前次 `main@3076e4847` 的 [CI](https://github.com/liming-cloud/ai-platform/actions/runs/39282750976) 九步骤已实际 success，排队项消除；当前已实现草稿写入、精确详情、完整表单及 RERANK 声明校验；正在完成本轮源码、当前 Compose 与独立原型一致性验证，尚未报告生产通过。不重复候选接受门禁。
 
 来源发布约束源码已连续修复：创建前置为 `4ad62393847549a92593068f79ce6ee6f1ec5cb0`，旧部署探测／发布前置为 `2fa170d0283bd4d5fa1ef986acefb3a9062500ff`；后者先两项真实失败，再通过最终上下文及依赖 290 项。范围、红绿与证据摘要集中在 [S2 实施边界](s2-platform-supply.md#2026-10-20旧部署来源复核子任务)，未部署，不以调用前检查冒充提交原子性或提升四项责任操作。真实推理、精确部署发布与租户赋权的执行授权另行核对，不沿用 S1 发现授权。
 

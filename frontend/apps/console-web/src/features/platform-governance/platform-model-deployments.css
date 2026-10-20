@@ -1,0 +1,37 @@
+/* S2 与已接受原型共享画布、排版和表格基线；声明名称不被编码替代。 */
+.deployment-residency { display: block; color: var(--foundation-muted-text); overflow-wrap: anywhere; }
+.platform-deployment-page .platform-connection-detail { grid-template-columns: minmax(0, 1.4fr) minmax(18rem, 0.6fr); }
+.platform-deployment-page .platform-connection-note > p { margin: 0; }
+.deployment-help { margin: 0; color: var(--foundation-muted-text); font-size: 0.875rem; line-height: 1.6; }
+.deployment-feedback { margin: 0; color: var(--foundation-danger); overflow-wrap: anywhere; }
+.foundation-task-dialog.platform-deployment-dialog { box-sizing: border-box; width: min(32rem, calc(100vw - 2rem)); max-width: calc(100vw - 2rem); max-height: calc(100dvh - 32px); padding: 1.5rem; overflow: hidden; border: 1px solid var(--foundation-border-strong); border-radius: var(--foundation-panel-radius); background: var(--foundation-surface); color: var(--foundation-text); box-shadow: 0 4px 24px rgb(0 0 0 / 5%); font-family: var(--foundation-font-body); font-size: 1rem; line-height: 1.6; }
+.platform-deployment-form { display: flex; flex-direction: column; gap: 1rem; max-height: calc(100dvh - 32px - 3rem - 2px); min-height: 0; }
+.platform-deployment-dialog__header { display: grid; gap: 0.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--foundation-border); flex-shrink: 0; }
+.platform-deployment-dialog__header .fui-DialogTitle { grid-area: auto; padding: 0; font: 500 1.5625rem/1.35 var(--foundation-font-display); }
+.platform-deployment-dialog__body { display: grid; gap: 1rem; min-width: 0; min-height: 0; overflow-y: auto; overscroll-behavior: contain; overflow-wrap: anywhere; scroll-padding-block: 0.5rem; }
+.platform-deployment-dialog__actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 0.5rem; padding-top: 1rem; border-top: 1px solid var(--foundation-border); flex-shrink: 0; }
+.platform-deployment-dialog .fui-Button { min-width: 0; min-height: var(--foundation-control-height); padding: 0.375rem 0.75rem; border-radius: var(--foundation-control-radius); font: 620 0.875rem/1.428572 var(--foundation-font-body); }
+.platform-deployment-dialog .fui-Button:focus-visible { outline: 2px solid var(--foundation-accent); outline-offset: 2px; }
+.platform-deployment-dialog p { margin: 0; }
+.deployment-field, .deployment-field-stack { display: grid; gap: 0.5rem; min-width: 0; }
+.deployment-field-stack { gap: 1rem; }
+.deployment-field > span { font-weight: 620; }
+.deployment-field > small { color: var(--foundation-muted-text); font-size: 0.875rem; line-height: 1.6; }
+.deployment-field input, .deployment-field select { box-sizing: border-box; width: 100%; min-width: 0; min-height: max(var(--foundation-control-height), calc(1lh + 0.5rem)); padding: 0 0.75rem; border: 1px solid var(--foundation-border-strong); border-radius: var(--foundation-control-radius); background: var(--foundation-surface); color: var(--foundation-text); font: 1rem/1.5 var(--foundation-font-body); }
+.deployment-field input:focus, .deployment-field select:focus { outline: 2px solid var(--foundation-accent); outline-offset: 2px; border-color: var(--foundation-accent); }
+.deployment-parameter-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.deployment-scope { display: grid; gap: 0.5rem; min-width: 0; margin: 0; padding: 1rem; border: 1px solid var(--foundation-border); border-radius: var(--foundation-control-radius); }
+.deployment-scope legend { padding: 0 0.5rem; font-weight: 620; }
+.deployment-scope label { display: flex; align-items: flex-start; gap: 0.5rem; }
+.deployment-scope input { flex-shrink: 0; width: 1rem; height: 1rem; margin: 0.3rem 0 0; accent-color: var(--foundation-accent); }
+.platform-deployment-dialog .platform-connection-note { padding: 1rem; border: 1px solid var(--foundation-border); border-radius: var(--foundation-control-radius); background: var(--foundation-subtle-surface); font-size: 0.875rem; }
+@media (max-width: 1023px) { .platform-deployment-page .platform-connection-detail { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 640px) {
+  .foundation-task-dialog.platform-deployment-dialog { padding: 1rem; max-width: calc(100vw - 2rem); }
+  .deployment-parameter-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* 原型在减少动态效果时完全停止过渡；不能让原生文字仍停在缩放前的帧。 */
+@media (prefers-reduced-motion: reduce) {
+  .platform-deployment-page, .platform-deployment-page *, .platform-deployment-dialog, .platform-deployment-dialog * { animation: none !important; transition: none !important; }
+}

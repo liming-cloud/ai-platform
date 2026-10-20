@@ -53,12 +53,13 @@ class PlatformModelDeploymentControllerTest {
         org.junit.jupiter.api.Assertions.assertEquals(2L, command.getValue().expectedVersion());
     }
 
+
     private static PlatformModelDeploymentView view(String status, long version) {
         return new PlatformModelDeploymentView("620000000000000001", "610000000000000001", 1,
                 "deterministic-embedding", "本地嵌入", "EMBEDDING", Set.of(ModelCapability.EMBEDDING), 8192,
                 null, 1024, Instant.parse("2026-08-13T03:00:00Z"), status,
                 ModelDeploymentAvailability.UNAVAILABLE, ModelDeploymentAvailabilityNextStep.NONE, version,
-                Instant.parse("2026-08-13T02:00:00Z"));
+                Instant.parse("2026-08-13T02:00:00Z"), "合成连接", null, null);
     }
 
     private static HandlerMethodArgumentResolver platformContext(PlatformRequestContext context) {

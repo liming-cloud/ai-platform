@@ -116,6 +116,13 @@ describe("visibleNavigation", () => {
     expect(defaultNavigationTarget(platformNavigation)).toBe("platform-operations");
   });
 
+  it("S2 部署入口复用平台模型能力，不生成额外授权标识", () => {
+    const capability = { canUseTenantWorkspace: false, canUsePlatformGovernance: true, capabilityCodes: ["model-platform:write"] };
+    const group = visibleNavigation(capability).find(item => item.id === "platform-model-governance");
+    expect(group?.children?.map(item => item.label)).toEqual(["模型治理"]);
+    expect(authorizedNavigationTargets(capability)).toEqual(["platform-model-supply"]);
+  });
+
   it("平台模型写能力只生成原型治理组中的受权入口", () => {
     expect(visibleNavigation({
       canUseTenantWorkspace: false,

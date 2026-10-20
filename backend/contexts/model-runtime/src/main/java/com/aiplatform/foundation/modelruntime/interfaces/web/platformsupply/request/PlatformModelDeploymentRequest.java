@@ -8,5 +8,7 @@ import java.util.Set;
 public record PlatformModelDeploymentRequest(
         String providerConnectionId, long expectedConnectionVersion, String modelCode, String displayName,
         ModelType modelType, Set<ModelCapability> capabilities, int contextWindow,
-        Integer outputLimit, Integer embeddingDimension) {
+        Integer outputLimit, Integer embeddingDimension, Integer rerankCandidateLimit,
+        String parameterSource, Set<String> plannedTenantIds,
+        tools.jackson.databind.JsonNode modelConfirmed) {
 }

@@ -68,8 +68,10 @@ acceptance-work-package:
 .PHONY: work-package-acceptance-test
 work-package-acceptance-test:
 	python3 -B -m unittest scripts.quality.test_work_package_acceptance
-	node --test scripts/quality/platform-connection-acceptance.test.cjs scripts/quality/browser-test-cache.test.cjs
+	node --test scripts/quality/platform-connection-acceptance.test.cjs scripts/quality/work-package-platform-supply.test.cjs scripts/quality/browser-test-cache.test.cjs
 	node --check scripts/development/acceptance-platform-connection.cjs
+	node --check scripts/development/acceptance-platform-supply.cjs
+	node --check scripts/quality/platform-supply.browser.cjs
 	bash -n scripts/development/acceptance-work-package.sh
 
 acceptance-knowledge-space:

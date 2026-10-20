@@ -6,5 +6,6 @@ public enum ModelCapability {
     STREAMING_CHAT,
     EMBEDDING,
     STRUCTURED_OUTPUT,
-    TOOL_CALLING
+    TOOL_CALLING,
+    RERANK
 }

@@ -1,3 +1,4 @@
+import { PlatformModelSupplyNavigation } from "./PlatformModelSupplyNavigation";
 import { Badge, Button, Dialog, DialogBody, DialogSurface, DialogTitle, DialogTrigger } from "@fluentui/react-components";
 import { StatePanel } from "@foundation/design-system";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -89,6 +90,7 @@ export function PlatformModelSupplyWorkspace({ client, route, sessionRevision, o
         </DialogBody></DialogSurface>
       </Dialog>
     </header>
+    <PlatformModelSupplyNavigation active="connections" onRouteChange={onRouteChange} />
     {state === "partial" ? <div className="platform-connection-note" role="status"><p>发布摘要暂未取得，暂不能新增连接。连接目录仍可查询；重新载入后再试。</p>
       <Button appearance="secondary" disabled={busy} onClick={() => void load()}>重新载入</Button></div> : null}
     {empty ? <div role="region" aria-label="平台模型连接目录" aria-busy={busy}><PlatformConnectionEmptyState /></div> : <>

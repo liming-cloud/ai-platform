@@ -214,7 +214,7 @@ public class ModelRuntimeCoreAutoConfiguration {
             ModelCatalogProperties properties) {
         return new PlatformModelDeploymentService(
                 deployments, connections, publications, discoveries, probes, verificationStore, Clock.systemUTC(), identifiers,
-                properties.getCapabilityVerificationValidity());
+                properties.getCapabilityVerificationValidity(), properties.isPlatformDeploymentWritesAvailable());
     }
 
     @Bean @ConditionalOnMissingBean

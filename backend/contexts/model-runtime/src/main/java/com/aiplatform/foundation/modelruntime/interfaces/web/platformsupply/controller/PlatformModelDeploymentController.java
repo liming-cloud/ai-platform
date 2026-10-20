@@ -50,7 +50,9 @@ public class PlatformModelDeploymentController {
         var result = deployments.create(new CreatePlatformModelDeploymentCommand(context,
                 requireIdempotencyKey(idempotencyKey), request.providerConnectionId(), request.expectedConnectionVersion(),
                 request.modelCode(), request.displayName(), request.modelType(), request.capabilities(), request.contextWindow(),
-                request.outputLimit(), request.embeddingDimension()));
+                request.outputLimit(), request.embeddingDimension(), request.rerankCandidateLimit(),
+                request.parameterSource(), request.plannedTenantIds(),
+                request.modelConfirmed() != null && request.modelConfirmed().isBoolean() && request.modelConfirmed().booleanValue()));
         return ResponseEntity.status(HttpStatus.CREATED).header(IDEMPOTENCY_REPLAYED, Boolean.toString(result.replayed()))
                 .body(result.deployment());
     }
@@ -61,6 +63,22 @@ public class PlatformModelDeploymentController {
             @RequestParam(defaultValue = "1") long pageNumber,
             @RequestParam(defaultValue = "20") long pageSize) {
         return deployments.list(new ListPlatformModelDeploymentsQuery(context, new PageQuery(pageNumber, pageSize)));
+    }
+
+    @GetMapping("/facts")
+    public com.aiplatform.foundation.modelruntime.application.platformsupply.dto.deployment.PlatformDeploymentPageFacts facts(PlatformRequestContext context) {
+        return deployments.facts(context);
+    }
+
+    @GetMapping("/candidates")
+    public PageResult<com.aiplatform.foundation.modelruntime.application.platformsupply.dto.deployment.PlatformDeployableModel> options(
+            PlatformRequestContext context, @RequestParam(defaultValue = "1") long pageNumber, @RequestParam(defaultValue = "100") long pageSize) {
+        return deployments.options(context, new PageQuery(pageNumber, pageSize));
+    }
+
+    @GetMapping("/{modelDeploymentId}")
+    public PlatformModelDeploymentView detail(PlatformRequestContext context, @PathVariable String modelDeploymentId) {
+        return deployments.detail(context, modelDeploymentId);
     }
 
     @PostMapping("/{modelDeploymentId}/probe")

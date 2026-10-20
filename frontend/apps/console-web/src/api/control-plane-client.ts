@@ -409,7 +409,7 @@ export interface PlatformProviderModelCandidate {
   modelCode: string;
   /** 已冻结名称；历史来源缺失时由服务端明确表达，不以编码补齐。 */
   displayName: string;
-  modelType: "CHAT" | "EMBEDDING" | null;
+  modelType: "CHAT" | "EMBEDDING" | "RERANK" | null;
   capabilities: string[];
   classification: "CONFIRMED_BY_PROVIDER" | "CONFIRMED_BY_CONTROLLED_MAPPING" | "CONFIRMED_BY_ADMIN" | "REQUIRES_ADMIN_CONFIRMATION";
 }
@@ -421,7 +421,7 @@ export interface PlatformModelDeploymentSummary {
   providerConnectionRevision: number;
   modelCode: string;
   displayName: string;
-  modelType: "CHAT" | "EMBEDDING";
+  modelType: "CHAT" | "EMBEDDING" | "RERANK";
   capabilities: string[];
   contextWindow: number;
   outputLimit: number | null;
@@ -432,6 +432,9 @@ export interface PlatformModelDeploymentSummary {
   nextStep: "VERIFY_CONNECTION" | "PROBE_MODEL" | "REPROBE_MODEL" | "PUBLISH" | "NONE";
   version: number;
   createdAt: string;
+  connectionDisplayName: string;
+  inputs: PlatformDeploymentInputs | null;
+  verifiedAt: string | null;
 }
 
 /** 平台管理员从已发现候选创建部署时可提交的最小业务字段。 */
@@ -440,11 +443,34 @@ export interface PlatformModelDeploymentCreateInput {
   expectedConnectionVersion: number;
   modelCode: string;
   displayName: string;
-  modelType: "CHAT" | "EMBEDDING";
+  modelType: "CHAT" | "EMBEDDING" | "RERANK";
   capabilities: string[];
   contextWindow: number;
   outputLimit: number | null;
   embeddingDimension: number | null;
+  rerankCandidateLimit: number | null;
+  parameterSource: string;
+  plannedTenantIds: string[];
+  modelConfirmed: boolean;
+}
+
+/** 新草稿的不可变非秘密声明；拟授权集合不能用作生效权限。 */
+export interface PlatformDeploymentInputs {
+  parameterSource: string; residency: string; rerankCandidateLimit: number | null;
+  plannedTenantIds: string[]; discoveryId: string; candidateDisplayName: string; classification: string;
+  declaredBySubjectId: string; declaredAt: string;
+}
+
+/** 服务端当前已发布来源，不从页面名称推测类型或补默认参数。 */
+export interface PlatformDeployableModel extends PlatformProviderModelCandidate {
+  connectionId: string; connectionRevision: number; connectionDisplayName: string;
+  residency: string; declaredCapability: "CHAT" | "EMBEDDING" | "RERANK" | null;
+}
+
+/** 独立辅助摘要不可用时，页面保留未知并禁止写入。 */
+export interface PlatformDeploymentPageFacts {
+  writesAvailable: boolean;
+  counts: { total: number; drafts: number; verified: number; published: number; disabled: number };
 }
 
 /** 平台模型探测的安全结果。 */
@@ -1833,6 +1859,19 @@ export class ControlPlaneClient {
     return this.request<PageResult<PlatformModelDeploymentSummary>>(
       `/platform/model-supply/deployments?pageNumber=${pageNumber}&pageSize=${pageSize}`,
     );
+  }
+
+  /** 精确读取指定部署，不以当前分页中的第一项替代。 */
+  async getPlatformModelDeployment(id: string): Promise<PlatformModelDeploymentSummary> {
+    return this.request(`/platform/model-supply/deployments/${encodeURIComponent(id)}`);
+  }
+
+  async getPlatformDeploymentPageFacts(): Promise<PlatformDeploymentPageFacts> {
+    return this.request("/platform/model-supply/deployments/facts");
+  }
+
+  async listPlatformDeployableModels(pageNumber = 1, pageSize = 100): Promise<PageResult<PlatformDeployableModel>> {
+    return this.request(`/platform/model-supply/deployments/candidates?pageNumber=${pageNumber}&pageSize=${pageSize}`);
   }
 
   async createPlatformModelDeployment(

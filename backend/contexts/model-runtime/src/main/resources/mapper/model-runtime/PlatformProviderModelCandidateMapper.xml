@@ -1,24 +1,47 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderModelCandidateMapper">
+    <!-- 全目录只使用已发布的当前连接修订；没有候选时不拿历史发现补齐。 -->
+    <select id="selectDeployablePage" resultType="com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.entity.PlatformDeployableModelRow">
+        WITH latest AS (
+            SELECT DISTINCT ON (platform_provider_connection_id, platform_provider_connection_revision) *
+            FROM model_runtime.platform_provider_model_discovery WHERE succeeded = TRUE
+            ORDER BY platform_provider_connection_id, platform_provider_connection_revision, discovered_at DESC, id DESC
+        )
+        SELECT connection.id::TEXT AS connection_id, connection.version AS connection_revision,
+            connection.display_name AS connection_display_name, connection.region AS residency,
+            connection.capability_intent AS declared_capability, candidate.model_code, candidate.display_name,
+            COALESCE(confirmation.model_type, candidate.model_type) AS model_type,
+            COALESCE(array_to_string(confirmation.capabilities, ','), array_to_string(candidate.capabilities, ',')) AS capabilities,
+            CASE WHEN confirmation.discovery_id IS NOT NULL THEN 'CONFIRMED_BY_ADMIN' ELSE candidate.classification END AS classification
+        FROM model_runtime.platform_provider_connection connection
+        JOIN model_runtime.platform_provider_connection_publication publication ON publication.connection_id = connection.id AND publication.connection_revision = connection.version
+        JOIN latest ON latest.platform_provider_connection_id = connection.id AND latest.platform_provider_connection_revision = connection.version
+        JOIN model_runtime.platform_discovered_model candidate ON candidate.discovery_id = latest.id
+        LEFT JOIN model_runtime.platform_model_candidate_confirmation confirmation ON confirmation.discovery_id = candidate.discovery_id AND confirmation.model_code = candidate.model_code
+        WHERE connection.scope = 'PLATFORM' AND connection.status = 'VERIFIED' AND latest.expires_at &gt; #{now}
+            AND connection.last_probed_at &lt;= #{now} AND connection.last_probed_at &gt; CAST(#{now} AS TIMESTAMPTZ) - INTERVAL '24 hours'
+        ORDER BY connection.display_name, candidate.model_code, candidate.candidate_key
+    </select>
+
     <!-- 最新发现根以 PostgreSQL DISTINCT ON 归一；候选窗口和总数由 MyBatis-Plus 生成。 -->
     <sql id="currentCandidates">
         WITH current_discovery AS (
-            SELECT DISTINCT ON (discovery.platform_provider_connection_id, discovery.platform_provider_connection_revision) discovery.id FROM model_runtime.platform_provider_model_discovery discovery
+            SELECT DISTINCT ON (discovery.platform_provider_connection_id, discovery.platform_provider_connection_revision) discovery.id, discovery.expires_at, discovery.discovered_at FROM model_runtime.platform_provider_model_discovery discovery
             JOIN model_runtime.platform_provider_connection connection ON connection.id = discovery.platform_provider_connection_id
             WHERE connection.id = #{connectionId} AND connection.scope = 'PLATFORM'
               AND connection.version = #{revision} AND connection.status = 'VERIFIED'
               AND discovery.platform_provider_connection_revision = #{revision}
-              AND discovery.succeeded = TRUE AND discovery.expires_at &gt; #{now}
+              AND discovery.succeeded = TRUE
             ORDER BY discovery.platform_provider_connection_id, discovery.platform_provider_connection_revision, discovery.discovered_at DESC, discovery.id DESC
         ), candidate_projection AS (
-            SELECT candidate.model_code, candidate.display_name, candidate.candidate_key,
+            SELECT candidate.discovery_id, candidate.model_code, candidate.display_name, candidate.candidate_key,
                    COALESCE(confirmation.model_type, candidate.model_type) AS model_type,
                    CASE WHEN confirmation.discovery_id IS NOT NULL THEN 'CONFIRMED_BY_ADMIN'
                         ELSE candidate.classification END AS classification,
                    COALESCE(array_to_string(confirmation.capabilities, ','), array_to_string(candidate.capabilities, ',')) AS capabilities
             FROM model_runtime.platform_discovered_model candidate
-            JOIN current_discovery ON current_discovery.id = candidate.discovery_id
+            JOIN current_discovery ON current_discovery.id = candidate.discovery_id AND current_discovery.expires_at &gt; #{now} AND current_discovery.discovered_at &lt;= #{now}
             LEFT JOIN model_runtime.platform_model_candidate_confirmation confirmation
               ON confirmation.discovery_id = candidate.discovery_id AND confirmation.model_code = candidate.model_code
         )
@@ -32,7 +55,7 @@
     </sql>
     <select id="selectCandidatePage" resultType="com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.entity.PlatformProviderModelCandidateRow">
         <include refid="currentCandidates"/>
-        SELECT model_code, model_type, capabilities, classification, display_name <include refid="candidateFilter"/>
+        SELECT model_code, model_type, capabilities, classification, display_name, discovery_id <include refid="candidateFilter"/>
         ORDER BY model_code ASC, candidate_key ASC
     </select>
     <select id="countCandidates" resultType="long">
@@ -53,22 +76,17 @@
     </insert>
     <!-- 选择值仍为原始编码，页面名称不能改变精确模型匹配、分类及过期边界。 -->
     <select id="selectCurrentCandidate" resultType="com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.entity.PlatformProviderModelCandidateRow">
-        SELECT DISTINCT ON (candidate.model_code) candidate.model_code,
-               COALESCE(confirmation.model_type, candidate.model_type) AS model_type,
-               COALESCE(array_to_string(confirmation.capabilities, ','), array_to_string(candidate.capabilities, ',')) AS capabilities,
-               CASE WHEN confirmation.discovery_id IS NOT NULL THEN 'CONFIRMED_BY_ADMIN' ELSE candidate.classification END AS classification,
-               candidate.display_name
-        FROM model_runtime.platform_provider_model_discovery discovery
-        JOIN model_runtime.platform_discovered_model candidate ON candidate.discovery_id = discovery.id
-        LEFT JOIN model_runtime.platform_model_candidate_confirmation confirmation
-          ON confirmation.discovery_id = candidate.discovery_id AND confirmation.model_code = candidate.model_code
-        WHERE discovery.platform_provider_connection_id = #{connectionId}
-          AND discovery.platform_provider_connection_revision = #{revision}
-          AND discovery.succeeded = TRUE AND discovery.expires_at &gt; #{now}
-          AND candidate.model_code = #{modelCode}
-          AND COALESCE(confirmation.model_type, candidate.model_type) = #{modelType}
-          AND (candidate.classification &lt;&gt; 'REQUIRES_ADMIN_CONFIRMATION' OR confirmation.discovery_id IS NOT NULL)
-        ORDER BY candidate.model_code ASC, discovery.discovered_at DESC, discovery.id DESC
+        <include refid="currentCandidates"/>
+        SELECT model_code, model_type, capabilities, classification, display_name, discovery_id
+        FROM candidate_projection WHERE model_code = #{modelCode} AND model_type = #{modelType}
+          AND classification &lt;&gt; 'REQUIRES_ADMIN_CONFIRMATION'
+    </select>
+    <select id="selectDraftCandidate" resultType="com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.entity.PlatformProviderModelCandidateRow">
+        <include refid="currentCandidates"/>
+        SELECT model_code, model_type, capabilities, classification, display_name, discovery_id
+        FROM candidate_projection WHERE model_code = #{modelCode}
+          AND (model_type = #{modelType} OR (classification = 'REQUIRES_ADMIN_CONFIRMATION' AND NOT EXISTS
+            (SELECT 1 FROM candidate_projection exact WHERE exact.model_code = candidate_projection.model_code AND exact.model_type = #{modelType})))
     </select>
     <insert id="confirmCandidate">
         INSERT INTO model_runtime.platform_model_candidate_confirmation

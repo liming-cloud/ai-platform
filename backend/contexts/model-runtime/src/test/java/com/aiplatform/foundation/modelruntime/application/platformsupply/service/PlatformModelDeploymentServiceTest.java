@@ -210,6 +210,23 @@ class PlatformModelDeploymentServiceTest {
                 101L, NOW.minusSeconds(60), NOW.minusSeconds(30));
     }
 
+
+    @Test
+    void 未知候选按连接能力显式确认而不以缺失名称或编码冒充厂商名称() {
+        var fixture = fixture();
+        when(fixture.publications().find(CONNECTION_ID, 1L)).thenReturn(Optional.of(publication(CONNECTION_ID, 1L)));
+        var connection = fixture.connection();
+        when(connection.preset()).thenReturn(new com.aiplatform.foundation.modelruntime.domain.platformsupply.model.preset.PlatformProviderPresetSelection("CUSTOM", "2026-10-12", "EMBEDDING", null));
+        when(fixture.discoveries().findCurrentSnapshot(any(), anyLong(), any(), any(), any())).thenReturn(Optional.of(
+                new com.aiplatform.foundation.modelruntime.application.platformsupply.dto.deployment.PlatformModelCandidateSnapshot(301L,
+                        PlatformDiscoveredModelCandidate.requiresAdministratorConfirmation("deterministic-embedding", null))));
+        var result = fixture.service().create(command());
+        assertEquals("CONFIRMED_BY_ADMIN", result.deployment().inputs().classification());
+        assertEquals("名称暂未提供", result.deployment().inputs().candidateDisplayName());
+        assertEquals(Set.of("201"), result.deployment().inputs().plannedTenantIds());
+        verifyNoInteractions(fixture.probeProvider(), fixture.verificationStore());
+    }
+
     private static CreatePlatformModelDeploymentCommand command() {
         var context = new PlatformRequestContext(new SubjectId(101L), CredentialType.PERSON,
                 AccessChannel.CONSOLE, 1L,
@@ -217,7 +234,7 @@ class PlatformModelDeploymentServiceTest {
                 "trc_platform_deployment_source");
         return new CreatePlatformModelDeploymentCommand(context, "platform-deployment-source", CONNECTION_ID.toString(), 1L,
                 "deterministic-embedding", "平台嵌入部署", ModelType.EMBEDDING,
-                Set.of(ModelCapability.EMBEDDING), 8192, null, 1024);
+                Set.of(ModelCapability.EMBEDDING), 8192, null, 1024, null, "合成资料 v1", Set.of("201"), true);
     }
 
     private static DeploymentFixture fixture() {
@@ -231,13 +248,15 @@ class PlatformModelDeploymentServiceTest {
         when(connection.version()).thenReturn(1L);
         when(connection.status()).thenReturn(ProviderConnectionStatus.VERIFIED);
         when(connection.providerKind()).thenReturn(ProviderKind.DETERMINISTIC);
+        when(connection.region()).thenReturn("合成北京区域");
+        when(connection.displayName()).thenReturn("合成连接");
         when(connection.endpoint()).thenReturn(URI.create("https://models.example.invalid/v1"));
         when(connection.credentialReference()).thenReturn(mock(CredentialReference.class));
         when(connections.findById(CONNECTION_ID)).thenReturn(Optional.of(connection));
-        var candidate = mock(PlatformDiscoveredModelCandidate.class);
-        when(candidate.capabilities()).thenReturn(Set.of(ModelCapability.EMBEDDING));
-        when(discoveries.findCurrentCandidate(any(), anyLong(), any(), any(), any()))
-                .thenReturn(Optional.of(candidate));
+        var candidate = new PlatformDiscoveredModelCandidate("deterministic-embedding", ModelType.EMBEDDING,
+                Set.of(ModelCapability.EMBEDDING), com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformModelCandidateClassification.CONFIRMED_BY_PROVIDER, "合成向量模型");
+        when(discoveries.findCurrentSnapshot(any(), anyLong(), any(), any(), any()))
+                .thenReturn(Optional.of(new com.aiplatform.foundation.modelruntime.application.platformsupply.dto.deployment.PlatformModelCandidateSnapshot(301L, candidate)));
         when(deployments.create(any())).thenAnswer(invocation -> {
             var creation = invocation.getArgument(0, PlatformModelDeploymentCreation.class);
             return new PlatformModelDeploymentCreationOutcome(creation.deployment(), false);
@@ -247,14 +266,14 @@ class PlatformModelDeploymentServiceTest {
                 Set.of(ModelCapability.EMBEDDING), Duration.ZERO, "PLATFORM_MODEL_PROBE_OK", NOW));
         var verificationStore = mock(PlatformModelDeploymentVerificationStore.class);
         var service = new PlatformModelDeploymentService(deployments, connections, publications, discoveries,
-                probeProvider, verificationStore, clock, () -> 630000000000000002L, Duration.ofHours(24));
-        return new DeploymentFixture(service, publications, discoveries, deployments, probeProvider, verificationStore);
+                probeProvider, verificationStore, clock, () -> 630000000000000002L, Duration.ofHours(24), true);
+        return new DeploymentFixture(service, publications, discoveries, deployments, probeProvider, verificationStore, connection);
     }
 
     private record DeploymentFixture(PlatformModelDeploymentService service,
             PlatformProviderConnectionPublicationRepository publications,
             PlatformProviderModelDiscoveryLookup discoveries, PlatformModelDeploymentRepository deployments,
-            PlatformModelProbeProviderService probeProvider, PlatformModelDeploymentVerificationStore verificationStore) {}
+            PlatformModelProbeProviderService probeProvider, PlatformModelDeploymentVerificationStore verificationStore, PlatformProviderConnection connection) {}
 
     @Test
     void 无平台模型权限时创建探测发布均不得读取来源或写入部署() {
@@ -262,12 +281,12 @@ class PlatformModelDeploymentServiceTest {
         var service = new PlatformModelDeploymentService(
                 new ForbiddenDeploymentRepository(), new ForbiddenConnectionRepository(), publications, new ForbiddenDiscoveryLookup(),
                 new PlatformModelProbeProviderService(java.util.List.of(), Clock.systemUTC()),
-                new ForbiddenVerificationStore(), Clock.systemUTC(), () -> 620000000000000001L, Duration.ofHours(24));
+                new ForbiddenVerificationStore(), Clock.systemUTC(), () -> 620000000000000001L, Duration.ofHours(24), true);
 
         assertThrows(ModelCatalogPermissionDeniedException.class, () -> service.create(new CreatePlatformModelDeploymentCommand(
                 sessionWithoutPlatformModelWrite(), "platform-deploy-0001", "610000000000000001", 1,
                 "deterministic-embedding", "平台嵌入", ModelType.EMBEDDING, Set.of(ModelCapability.EMBEDDING),
-                8192, null, 1024)));
+                8192, null, 1024, null, "合成资料 v1", Set.of("201"), true)));
         assertThrows(ModelCatalogPermissionDeniedException.class, () -> service.probe(new ProbePlatformModelDeploymentCommand(
                 sessionWithoutPlatformModelWrite(), "620000000000000001", 0L, Duration.ofSeconds(5))));
         assertThrows(ModelCatalogPermissionDeniedException.class, () -> service.publish(new PublishPlatformModelDeploymentCommand(
@@ -281,6 +300,8 @@ class PlatformModelDeploymentServiceTest {
     }
 
     private static final class ForbiddenDeploymentRepository implements PlatformModelDeploymentRepository {
+        @Override public Optional<Instant> lastVerifiedAt(PlatformModelDeploymentId id) { throw new AssertionError("无权请求不得读取验证事实"); }
+        @Override public com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformModelDeploymentCounts counts() { throw new AssertionError("无权请求不得读取摘要"); }
         @Override public PlatformModelDeploymentCreationOutcome create(PlatformModelDeploymentCreation creation) { throw new AssertionError("无权请求不得写入平台部署"); }
         @Override public Optional<PlatformModelDeployment> findById(PlatformModelDeploymentId id) { throw new AssertionError("无权请求不得读取平台部署"); }
         @Override public PlatformModelDeploymentPage findPage(long pageNumber, long pageSize) { throw new AssertionError("无权请求不得读取平台部署"); }
@@ -291,6 +312,10 @@ class PlatformModelDeploymentServiceTest {
         @Override public Optional<PlatformProviderConnection> findById(PlatformProviderConnectionId id) { throw new AssertionError("无权请求不得读取平台连接"); }
     }
     private static final class ForbiddenDiscoveryLookup implements PlatformProviderModelDiscoveryLookup {
+        @Override public Optional<com.aiplatform.foundation.modelruntime.application.platformsupply.dto.deployment.PlatformModelCandidateSnapshot> findCurrentSnapshot(
+                PlatformProviderConnectionId id, long revision, String code, ModelType type, Instant now) { throw new AssertionError("无权请求不得读取候选快照"); }
+        @Override public com.aiplatform.foundation.shared.contract.paging.PageResult<com.aiplatform.foundation.modelruntime.application.platformsupply.dto.deployment.PlatformDeployableModel> findDeployableModels(
+                com.aiplatform.foundation.shared.contract.paging.PageQuery page, Instant now) { throw new AssertionError("无权请求不得读取草稿候选"); }
         @Override public Optional<com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformDiscoveredModelCandidate> findCurrentCandidate(PlatformProviderConnectionId connectionId, long connectionRevision, String modelCode, ModelType modelType, java.time.Instant now) { throw new AssertionError("无权请求不得读取平台候选"); }
         @Override public com.aiplatform.foundation.shared.contract.paging.PageResult<com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformDiscoveredModelCandidate> findCurrentCandidates(PlatformProviderConnectionId connectionId, long connectionRevision, com.aiplatform.foundation.shared.contract.paging.PageQuery page, java.time.Instant now, String q) { throw new AssertionError("无权请求不得读取平台候选"); }
     }

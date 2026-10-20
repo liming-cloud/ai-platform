@@ -9,6 +9,12 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties("foundation.model-catalog")
 public class ModelCatalogProperties {
 
+    private boolean platformDeploymentWritesAvailable = true;
+
+    /** 实例启动时固定的 S2 写入可用性；不影响读取和安全停用。 */
+    public boolean isPlatformDeploymentWritesAvailable() { return platformDeploymentWritesAvailable; }
+    public void setPlatformDeploymentWritesAvailable(boolean value) { platformDeploymentWritesAvailable = value; }
+
     private int providerConnectionLimit = 3;
     private int modelDeploymentLimit = 6;
     private Duration capabilityVerificationValidity = Duration.ofHours(24);

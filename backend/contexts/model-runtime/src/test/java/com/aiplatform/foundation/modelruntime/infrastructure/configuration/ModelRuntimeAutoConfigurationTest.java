@@ -330,6 +330,12 @@ class ModelRuntimeAutoConfigurationTest {
                         ModelRuntimePersistenceAutoConfiguration.class))
                 .withPropertyValues(
                         "foundation.model-runtime.persistence.enabled=true")
+                .withBean(com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformModelDeploymentMapper.class,
+                        () -> mock(com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformModelDeploymentMapper.class))
+                .withBean(com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformModelDeploymentRequestMapper.class,
+                        () -> mock(com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformModelDeploymentRequestMapper.class))
+                .withBean(com.aiplatform.foundation.security.identity.TenantActivityFacts.class,
+                        () -> mock(com.aiplatform.foundation.security.identity.TenantActivityFacts.class))
                 .withBean(PlatformProviderConnectionPublicationMapper.class,
                         () -> mock(PlatformProviderConnectionPublicationMapper.class))
                 .withBean(com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderConnectionMapper.class,

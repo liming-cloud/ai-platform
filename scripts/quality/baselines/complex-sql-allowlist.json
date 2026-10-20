@@ -1122,6 +1122,66 @@
       "statementId": "confirmCandidate",
       "category": "ATOMIC_STATE_TRANSITION",
       "reason": "WP-0019 S1 / ADR-0070：迁出既有候选确认语句，当前修订及防重复谓词保持；原候选名称与编码不更新。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/PlatformModelDeploymentMapper.xml",
+      "statementId": "selectById",
+      "category": "POSTGRES_TYPE",
+      "reason": "WP-0019 S2 / ADR-0100：读取平台部署的 PostgreSQL 能力与拟授权数组安全投影，恢复精确对象及声明快照。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/PlatformModelDeploymentMapper.xml",
+      "statementId": "selectPage",
+      "category": "POSTGRES_TYPE",
+      "reason": "WP-0019 S2 / ADR-0100：数组安全投影使用 MyBatis-Plus 页码分页与总数，不手写 LIMIT/OFFSET。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/PlatformModelDeploymentMapper.xml",
+      "statementId": "insertDeployment",
+      "category": "POSTGRES_TYPE",
+      "reason": "WP-0019 S2 / ADR-0100：将声明能力和拟授权集合显式转换 PostgreSQL 数组，与分类确认和幂等定位原子提交。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/PlatformModelDeploymentMapper.xml",
+      "statementId": "lastVerifiedAt",
+      "category": "MULTI_TABLE",
+      "reason": "WP-0019 S2 / ADR-0100：按部署明确引用的验证主键读取真实时间，不从有效期倒推。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/PlatformModelDeploymentMapper.xml",
+      "statementId": "counts",
+      "category": "AGGREGATE",
+      "reason": "WP-0019 S2 / ADR-0100：在数据库按状态聚合全目录计数，不把当前页条数当总数。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/PlatformModelDeploymentMapper.xml",
+      "statementId": "lockCreation",
+      "category": "POSTGRES_ADVISORY_LOCK",
+      "reason": "WP-0019 S2 / ADR-0100：平台部署全局名称及幂等使用同一事务锁，保持既有串行化边界。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/PlatformModelDeploymentMapper.xml",
+      "statementId": "lockSource",
+      "category": "ROW_LOCK",
+      "reason": "WP-0019 S2 / ADR-0100：同一短事务锁定当前已发布、验证未过期连接，阻止轮换和新发现 CAS 穿越提交。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/PlatformProviderModelCandidateMapper.xml",
+      "statementId": "selectDraftCandidate",
+      "category": "MULTI_TABLE",
+      "reason": "WP-0019 S2 / ADR-0100：从最新完整发现根合并明确分类确认；精确模型及类型匹配，不回退旧发现或猜类型。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/PlatformProviderModelCandidateMapper.xml",
+      "statementId": "selectDeployablePage",
+      "category": "MULTI_TABLE",
+      "reason": "WP-0019 S2 / ADR-0100：仅已发布连接当前修订及最新有效发现进入草稿候选；MyBatis-Plus 生成分页。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantLifecycleReadMapper.xml",
+      "statementId": "lockActive",
+      "category": "ROW_LOCK",
+      "reason": "WP-0019 S2 / ADR-0100：组织拥有的活动事实共享锁在声明事务内抵御停用竞争，不暴露内部模型或授予权限。"
     }
   ]
 }

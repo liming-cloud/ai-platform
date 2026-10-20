@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformModelDeploymentMapper">
+    <sql id="projection">
+        id, platform_provider_connection_id AS connection_id, platform_provider_connection_revision AS revision,
+        model_code, display_name, model_type, array_to_string(capabilities, ',') AS capabilities,
+        context_window, output_limit, embedding_dimension, last_verification_id AS verification_id,
+        verification_expires_at AS expires_at, status, version, created_at, parameter_source, residency,
+        rerank_candidate_limit, array_to_string(planned_tenant_ids, ',') AS planned_tenant_ids,
+        candidate_discovery_id AS discovery_id, candidate_display_name, candidate_classification AS classification,
+        declared_by_subject_id AS subject_id, declared_at
+    </sql>
+    <select id="selectById" resultType="com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.entity.PlatformModelDeploymentRow">
+        SELECT <include refid="projection"/> FROM model_runtime.platform_model_deployment WHERE id = #{id} AND scope = 'PLATFORM'
+    </select>
+    <select id="selectPage" resultType="com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.entity.PlatformModelDeploymentRow">
+        SELECT <include refid="projection"/> FROM model_runtime.platform_model_deployment WHERE scope = 'PLATFORM' ORDER BY created_at DESC, id DESC
+    </select>
+    <select id="lastVerifiedAt" resultType="java.time.Instant">
+        SELECT verification.probed_at FROM model_runtime.platform_model_deployment deployment
+        JOIN model_runtime.platform_model_capability_verification verification ON verification.id = deployment.last_verification_id
+        WHERE deployment.id = #{id} AND deployment.scope = 'PLATFORM'
+    </select>
+    <select id="counts" resultType="com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformModelDeploymentCounts">
+        SELECT count(*) AS total, count(*) FILTER (WHERE status = 'DRAFT') AS drafts,
+            count(*) FILTER (WHERE status = 'VERIFIED') AS verified, count(*) FILTER (WHERE status = 'PUBLISHED') AS published,
+            count(*) FILTER (WHERE status = 'DISABLED') AS disabled FROM model_runtime.platform_model_deployment WHERE scope = 'PLATFORM'
+    </select>
+    <select id="lockCreation" resultType="string">SELECT pg_advisory_xact_lock(6613000067)</select>
+    <!-- 连接共享锁阻止轮换、停用与新发现 CAS 穿越创建提交；发布事实按精确修订匹配。 -->
+    <select id="lockSource" resultType="long">
+        SELECT connection.id FROM model_runtime.platform_provider_connection connection
+        WHERE connection.id = #{id} AND connection.scope = 'PLATFORM' AND connection.version = #{revision}
+          AND connection.status = 'VERIFIED' AND connection.last_probe_succeeded = TRUE
+          AND connection.last_probed_at &lt;= #{now} AND connection.last_probed_at &gt; CAST(#{now} AS TIMESTAMPTZ) - INTERVAL '24 hours'
+          AND EXISTS (SELECT 1 FROM model_runtime.platform_provider_connection_publication publication
+              WHERE publication.connection_id = connection.id AND publication.connection_revision = connection.version)
+        FOR SHARE OF connection
+    </select>
+    <insert id="insertDeployment">
+        INSERT INTO model_runtime.platform_model_deployment
+          (id, scope, platform_provider_connection_id, platform_provider_connection_revision, model_code, display_name, model_type,
+           capabilities, context_window, output_limit, embedding_dimension, status, version, created_at,
+           parameter_source, residency, rerank_candidate_limit, planned_tenant_ids, candidate_discovery_id,
+           candidate_display_name, candidate_classification, declared_by_subject_id, declared_at)
+        VALUES (#{d.id.value}, 'PLATFORM', #{d.providerConnectionId.value}, #{d.providerConnectionRevision}, #{d.modelCode},
+           #{d.displayName}, #{d.modelType}, string_to_array(#{capabilities}, ','), #{d.contextWindow}, #{d.outputLimit}, #{d.embeddingDimension},
+           #{d.status}, #{d.version}, #{d.createdAt}, #{d.inputs.parameterSource}, #{d.inputs.residency}, #{d.inputs.rerankCandidateLimit},
+           string_to_array(#{tenants}, ',')::BIGINT[], #{d.inputs.discoveryId}, #{d.inputs.candidateDisplayName},
+           #{d.inputs.classification}, #{d.inputs.declaredBySubjectId}, #{d.inputs.declaredAt})
+    </insert>
+</mapper>

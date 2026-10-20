@@ -54,6 +54,15 @@ public final class PostgresTenantLifecycleReadAdapter implements TenantLifecycle
     }
 
     @Override
+    public void requireActive(java.util.Set<Long> tenantIds) {
+        if (!org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive())
+            throw new IllegalStateException("活动租户复核必须在声明事务内执行");
+        for (var id : java.util.Objects.requireNonNull(tenantIds).stream().sorted().toList()) {
+            if (mapper.lockActive(id) == null) throw new IllegalArgumentException("拟授权租户不存在或不是活动状态");
+        }
+    }
+
+    @Override
     public Optional<TenantLifecycleView> find(long tenantId) {
         return Optional.ofNullable(lifecycles.selectById(tenantId)).map(row -> new TenantLifecycleView(
                 row.tenantId(), row.tenantCode(), row.displayName(), row.initialAdministratorSubjectId(),

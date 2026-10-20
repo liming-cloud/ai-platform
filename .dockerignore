@@ -8,6 +8,9 @@
 .env.*
 **/.env
 **/.env.*
+# 人工维护的受保护验收凭据不能进入 Docker 构建上下文。
+pwd.txt
+AccessKey.txt
 **/node_modules
 **/target
 **/dist

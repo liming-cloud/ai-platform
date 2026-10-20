@@ -20,6 +20,8 @@ public record DiscoveredModel(
             throw new IllegalArgumentException("发现模型代码格式不正确");
         }
         modelType = Objects.requireNonNull(modelType, "发现模型类型不能为空");
+        // 本契约仍属于既有租户发现；平台重排草稿不能隐式开放租户运行能力。
+        if (modelType == ModelType.RERANK) throw new IllegalArgumentException("租户重排候选合同尚未开放");
         capabilities = immutableCapabilities(capabilities);
         if (modelType == ModelType.CHAT && !capabilities.contains(ModelCapability.CHAT)) {
             throw new IllegalArgumentException("对话发现模型必须声明对话能力");

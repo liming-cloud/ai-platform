@@ -8,7 +8,6 @@
     "backend/contexts/knowledge-data/src/main/java/com/aiplatform/foundation/knowledgedata/infrastructure/persistence/operations/JdbcKnowledgeOperationsFactSource.java",
     "backend/contexts/model-runtime/src/main/java/com/aiplatform/foundation/modelruntime/infrastructure/persistence/operations/JdbcModelOperationsFactSource.java",
     "backend/contexts/model-runtime/src/main/java/com/aiplatform/foundation/modelruntime/infrastructure/persistence/platformsupply/PostgresEncryptedPlatformProviderConnectionCredentialStore.java",
-    "backend/contexts/model-runtime/src/main/java/com/aiplatform/foundation/modelruntime/infrastructure/persistence/platformsupply/repository/PostgresPlatformModelDeploymentRepository.java",
     "backend/contexts/model-runtime/src/main/java/com/aiplatform/foundation/modelruntime/infrastructure/persistence/platformsupply/repository/PostgresPlatformModelDeploymentVerificationStore.java",
     "backend/contexts/model-runtime/src/main/java/com/aiplatform/foundation/modelruntime/infrastructure/persistence/provider/repository/PostgresProviderModelDiscoveryStore.java",
     "backend/contexts/organization-access/src/main/java/com/aiplatform/foundation/organizationaccess/infrastructure/persistence/identity/repository/JdbcPlatformAccountCandidateDirectory.java",

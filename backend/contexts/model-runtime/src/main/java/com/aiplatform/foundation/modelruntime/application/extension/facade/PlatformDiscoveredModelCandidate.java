@@ -43,6 +43,9 @@ public record PlatformDiscoveredModelCandidate(
             if (modelType == ModelType.EMBEDDING && !capabilities.contains(ModelCapability.EMBEDDING)) {
                 throw new IllegalArgumentException("已确认嵌入候选必须包含嵌入能力");
             }
+            if (modelType == ModelType.RERANK && !capabilities.equals(Set.of(ModelCapability.RERANK))) {
+                throw new IllegalArgumentException("已确认重排候选只能声明重排能力");
+            }
         }
     }
 
@@ -70,12 +73,17 @@ public record PlatformDiscoveredModelCandidate(
                 modelCode, modelType, capabilities, PlatformModelCandidateClassification.CONFIRMED_BY_PROVIDER);
     }
 
+    /** 保存管理员显式选择的分类，不把重排候选转成向量能力，也不构成真实验证。 */
     public static PlatformDiscoveredModelCandidate confirmedByAdministrator(
             String modelCode, ModelType modelType) {
         return new PlatformDiscoveredModelCandidate(
                 modelCode,
                 modelType,
-                Set.of(modelType == ModelType.CHAT ? ModelCapability.CHAT : ModelCapability.EMBEDDING),
+                Set.of(switch (Objects.requireNonNull(modelType, "确认模型类型不能为空")) {
+                    case CHAT -> ModelCapability.CHAT;
+                    case EMBEDDING -> ModelCapability.EMBEDDING;
+                    case RERANK -> ModelCapability.RERANK;
+                }),
                 PlatformModelCandidateClassification.CONFIRMED_BY_ADMIN);
     }
 

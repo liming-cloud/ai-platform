@@ -68,6 +68,26 @@ public final class PostgresPlatformProviderModelDiscoveryStore
     }
 
     @Override
+    public PageResult<com.aiplatform.foundation.modelruntime.application.platformsupply.dto.deployment.PlatformDeployableModel> findDeployableModels(PageQuery page, Instant now) {
+        return Objects.requireNonNull(reads.execute(status -> {
+            var result = candidateMapper.selectDeployablePage(new com.baomidou.mybatisplus.extension.plugins.pagination.Page<
+                    com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.entity.PlatformDeployableModelRow>(page.pageNumber(), page.pageSize()), now);
+            return PageResult.of(result.getRecords().stream().map(row -> new com.aiplatform.foundation.modelruntime.application.platformsupply.dto.deployment.PlatformDeployableModel(
+                    row.connectionId(), row.connectionRevision(), row.connectionDisplayName(), row.residency(), row.declaredCapability(), row.modelCode(),
+                    row.displayName(), row.modelType() == null ? null : ModelType.valueOf(row.modelType()),
+                    Arrays.stream(row.capabilities().split(",")).filter(v -> !v.isEmpty()).map(ModelCapability::valueOf).collect(Collectors.toUnmodifiableSet()),
+                    row.classification())).toList(), page, result.getTotal());
+        }));
+    }
+
+    @Override
+    public Optional<com.aiplatform.foundation.modelruntime.application.platformsupply.dto.deployment.PlatformModelCandidateSnapshot> findCurrentSnapshot(
+            PlatformProviderConnectionId connectionId, long revision, String code, ModelType type, Instant now) {
+        return Optional.ofNullable(candidateMapper.selectDraftCandidate(connectionId.value(), revision, code, type.name(), now))
+                .map(row -> new com.aiplatform.foundation.modelruntime.application.platformsupply.dto.deployment.PlatformModelCandidateSnapshot(row.discoveryId(), candidate(row)));
+    }
+
+    @Override
     public Optional<PlatformDiscoveredModelCandidate> findCurrentCandidate(
             PlatformProviderConnectionId connectionId,
             long connectionRevision,
@@ -125,7 +145,7 @@ public final class PostgresPlatformProviderModelDiscoveryStore
         if (connectionRevision < 0 || confirmedBySubjectId <= 0) {
             throw new IllegalArgumentException("平台连接修订或确认主体不正确");
         }
-        var capability = modelType == ModelType.CHAT ? ModelCapability.CHAT : ModelCapability.EMBEDDING;
+        var capability = ModelCapability.valueOf(modelType.name());
         var id = connectionId;
         var code = modelCode;
         var type = modelType;

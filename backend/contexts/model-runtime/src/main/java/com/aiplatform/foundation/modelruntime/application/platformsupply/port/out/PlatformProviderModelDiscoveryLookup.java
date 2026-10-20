@@ -10,6 +10,13 @@ import java.util.Optional;
 
 /** 仅向平台部署编排提供当前连接修订的未过期发现候选。 */
 public interface PlatformProviderModelDiscoveryLookup {
+    /** 分页读取已发布连接当前发现候选，不创建确认或部署事实。 */
+    PageResult<com.aiplatform.foundation.modelruntime.application.platformsupply.dto.deployment.PlatformDeployableModel> findDeployableModels(PageQuery page, Instant now);
+
+    /** 只在当前完整发现根选择精确候选；未知分类由草稿事务独立确认。 */
+    Optional<com.aiplatform.foundation.modelruntime.application.platformsupply.dto.deployment.PlatformModelCandidateSnapshot> findCurrentSnapshot(
+            PlatformProviderConnectionId connectionId, long connectionRevision, String modelCode, ModelType modelType, Instant now);
+
     Optional<PlatformDiscoveredModelCandidate> findCurrentCandidate(
             PlatformProviderConnectionId connectionId,
             long connectionRevision,

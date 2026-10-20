@@ -336,7 +336,7 @@ function AuthenticatedConsoleApp({
       compactHeading={platformActive && route.task === "create"}
       pageStatus={platformActive && route.task === "create" ? { label: "等待填写", tone: "warning" } : undefined}
       pageTitle={
-        operationsActive ? "运营总览" : platformOperationsActive ? "平台运营总览" : accessPoliciesActive ? undefined : accessActive ? undefined : platformActive ? route.task === "create" ? "建立新租户" : route.task === "tenants" || route.task === "detail" || route.task === "admins" || route.task === "quotas" || route.task === "features" || route.task === "security" ? undefined : "平台租户" : platformAccountsActive ? undefined : platformModelSupplyActive ? route.task === "deployments" ? "平台模型供应链" : undefined : queryActive ? "从已授权资料中获得答案" : governanceActive ? route.task === "query" ? "查询用量与审计" : "受限评测运行" : modelsActive ? route.task === "configuration" ? "受控模型配置" : route.task === "providers" ? "供应商连接与模型发现" : "模型部署与能力验证" : dataPage?.title ?? "可信知识平台"
+        operationsActive ? "运营总览" : platformOperationsActive ? "平台运营总览" : accessPoliciesActive ? undefined : accessActive ? undefined : platformActive ? route.task === "create" ? "建立新租户" : route.task === "tenants" || route.task === "detail" || route.task === "admins" || route.task === "quotas" || route.task === "features" || route.task === "security" ? undefined : "平台租户" : platformAccountsActive ? undefined : platformModelSupplyActive ? undefined : queryActive ? "从已授权资料中获得答案" : governanceActive ? route.task === "query" ? "查询用量与审计" : "受限评测运行" : modelsActive ? route.task === "configuration" ? "受控模型配置" : route.task === "providers" ? "供应商连接与模型发现" : "模型部署与能力验证" : dataPage?.title ?? "可信知识平台"
       }
       pageSummary={
         operationsActive
@@ -357,7 +357,7 @@ function AuthenticatedConsoleApp({
           : platformAccountsActive
           ? route.task === "roles" ? undefined : "账户目录按页显示，不展示凭据、会话或权限快照。"
           : platformModelSupplyActive
-          ? route.task === "deployments" ? "平台连接与后续部署独立于租户范围；Endpoint 和凭据始终受到保护。" : undefined
+          ? undefined
           : governanceActive && route.task === "query"
           ? "核对当前租户的查询配额、计量结果和脱敏运行记录。"
           : governanceActive

@@ -31,6 +31,10 @@ public final class PlatformModelProbeProviderService {
 
     public ProviderProbeResult probe(PlatformModelDeploymentProbeRequest request) {
         request = Objects.requireNonNull(request, "平台模型探测请求不能为空");
+        // 重排必须由独立协议验证，不能被现有 Chat／Embedding 二分支误报为成功。
+        if (request.requestedCapabilities().contains(com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapability.RERANK))
+            return new ProviderProbeResult(request.providerKind(), false, Set.of(), Duration.ZERO,
+                    "PLATFORM_RERANK_PROBE_UNSUPPORTED", clock.instant());
         var probe = probes.get(request.providerKind());
         if (probe == null) {
             return new ProviderProbeResult(request.providerKind(), false, Set.of(), Duration.ZERO,

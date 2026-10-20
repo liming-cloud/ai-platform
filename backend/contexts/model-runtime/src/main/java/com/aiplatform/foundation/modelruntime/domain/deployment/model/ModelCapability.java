@@ -9,5 +9,6 @@ public enum ModelCapability implements ValueObject {
     STREAMING_CHAT,
     EMBEDDING,
     STRUCTURED_OUTPUT,
-    TOOL_CALLING
+    TOOL_CALLING,
+    RERANK
 }

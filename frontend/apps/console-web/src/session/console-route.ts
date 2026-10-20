@@ -83,6 +83,7 @@ export type ConsoleRoute =
   | { navigationId: "platform-accounts"; task: "accounts"; query: string;
       status: "ALL" | "ACTIVE" | "DISABLED"; page: number; pageSize: 10 | 20 | 50 | 100 }
   | { navigationId: "platform-accounts"; task: "roles" }
+  | { navigationId: "platform-model-supply"; task: "deployment-detail"; deploymentId: string; directoryPage?: number; pageSize?: 10 | 20 | 50 | 100 }
   | { navigationId: "platform-model-supply"; task: "connections"; page: number; pageSize?: 10 | 20 | 50 | 100; query?: string }
   | { navigationId: "platform-model-supply"; task: "connection-detail"; connectionId: string; candidatePage: number;
       pageSize?: 10 | 20 | 50 | 100; query?: string; directory?: { page: number; pageSize?: 10 | 20 | 50 | 100; query?: string } }
@@ -91,6 +92,7 @@ export type ConsoleRoute =
     task: "deployments";
     connectionId?: string;
     connectionVersion?: number;
+    pageSize?: 10 | 20 | 50 | 100;
     candidatePage: number;
     deploymentPage: number;
   };
@@ -469,6 +471,12 @@ export function parseConsoleRoute(pathname: string, search: string): ConsoleRout
       ...(parameters.has("q") ? { query: parameters.get("q")! } : {}),
     };
   }
+  const platformDeployment = /^\/platform\/model-supply\/deployments\/([1-9][0-9]*)$/.exec(routePath);
+  if (platformDeployment) {
+    const parameters = new URLSearchParams(search);
+    return { navigationId: "platform-model-supply", task: "deployment-detail", deploymentId: platformDeployment[1]!,
+      directoryPage: positivePage(parameters.get("directoryPage")), pageSize: platformConnectionPagination(parameters, "page").size ?? 20 };
+  }
   if (routePath === "/platform/model-supply/deployments") {
     const parameters = new URLSearchParams(search);
     const version = parameters.get("connectionVersion");
@@ -476,6 +484,7 @@ export function parseConsoleRoute(pathname: string, search: string): ConsoleRout
       navigationId: "platform-model-supply",
       task: "deployments",
       connectionId: nonBlankParameter(parameters.get("connectionId")),
+      ...(platformConnectionPagination(parameters, "page").size ? { pageSize: platformConnectionPagination(parameters, "page").size } : {}),
       connectionVersion: version !== null && /^\d+$/.test(version) ? Number(version) : undefined,
       candidatePage: positivePage(parameters.get("candidatePage")),
       deploymentPage: positivePage(parameters.get("deploymentPage")),
@@ -569,6 +578,7 @@ export function formatConsoleRoute(route: ConsoleRoute): string {
         page: String(route.page), pageSize: String(route.pageSize) })}`
       : "/platform/roles";
   }
+  if (route.task === "deployment-detail") return `/platform/model-supply/deployments/${route.deploymentId}?directoryPage=${route.directoryPage ?? 1}&size=${route.pageSize ?? 20}`;
   if (route.task === "deployments") return formatPlatformDeploymentRoute(route);
   const parameters = new URLSearchParams(route.task === "connections" ? { page: String(route.page) } : { candidatePage: String(route.candidatePage) });
   if (route.pageSize !== undefined) parameters.set("size", String(route.pageSize));
@@ -648,6 +658,7 @@ function formatPlatformDeploymentRoute(route: Extract<ConsoleRoute, { navigation
   if (route.connectionVersion !== undefined) parameters.set("connectionVersion", String(route.connectionVersion));
   parameters.set("candidatePage", String(route.candidatePage));
   parameters.set("deploymentPage", String(route.deploymentPage));
+  if (route.pageSize !== undefined) parameters.set("size", String(route.pageSize));
   return `/platform/model-supply/deployments?${parameters}`;
 }
 

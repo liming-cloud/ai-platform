@@ -109,7 +109,7 @@ function validCandidate(value: unknown): value is PlatformProviderModelCandidate
   return record(value) && typeof value.modelCode === "string"
     && typeof value.displayName === "string" && value.displayName.trim().length > 0
     && ["CONFIRMED_BY_PROVIDER", "CONFIRMED_BY_CONTROLLED_MAPPING", "CONFIRMED_BY_ADMIN", "REQUIRES_ADMIN_CONFIRMATION"].includes(String(value.classification))
-    && (value.modelType === null || value.modelType === "CHAT" || value.modelType === "EMBEDDING");
+    && (value.modelType === null || value.modelType === "CHAT" || value.modelType === "EMBEDDING" || value.modelType === "RERANK");
 }
 function requirePage<T>(page: Pick<PageResult<T>, "items" | "totalElements" | "hasPrevious" | "hasNext">, item: (value: unknown) => boolean): void {
   if (!page || !Array.isArray(page.items) || !page.items.every(item) || !count(page.totalElements)

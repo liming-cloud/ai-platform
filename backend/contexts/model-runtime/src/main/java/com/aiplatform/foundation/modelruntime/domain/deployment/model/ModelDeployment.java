@@ -316,6 +316,10 @@ public final class ModelDeployment implements AggregateRoot<ModelDeploymentId> {
             Set<ModelCapability> capabilities,
             Integer outputLimit,
             Integer embeddingDimension) {
+        // 租户部署属于后续切片；新增平台重排类型不能落入原有向量分支。
+        if (modelType == ModelType.RERANK) {
+            throw new IllegalArgumentException("租户重排部署合同尚未开放");
+        }
         if (modelType == ModelType.CHAT) {
             if (!capabilities.contains(ModelCapability.CHAT)) {
                 throw new IllegalArgumentException("对话部署必须声明对话能力");

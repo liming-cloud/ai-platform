@@ -3,6 +3,7 @@ package com.aiplatform.foundation.modelruntime.application.platformsupply.dto;
 import com.aiplatform.foundation.modelruntime.application.deployment.dto.ModelDeploymentAvailability;
 import com.aiplatform.foundation.modelruntime.application.deployment.dto.ModelDeploymentAvailabilityNextStep;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapability;
+import com.aiplatform.foundation.modelruntime.application.platformsupply.dto.deployment.PlatformModelDeploymentInputsView;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.Set;
@@ -13,7 +14,8 @@ public record PlatformModelDeploymentView(
         String displayName, String modelType, Set<ModelCapability> capabilities, int contextWindow,
         Integer outputLimit, Integer embeddingDimension, Instant verificationExpiresAt, String status,
         ModelDeploymentAvailability availability, ModelDeploymentAvailabilityNextStep nextStep,
-        long version, Instant createdAt) {
+        long version, Instant createdAt, String connectionDisplayName,
+        PlatformModelDeploymentInputsView inputs, Instant verifiedAt) {
     public PlatformModelDeploymentView {
         id = Objects.requireNonNull(id, "平台模型部署标识不能为空");
         providerConnectionId = Objects.requireNonNull(providerConnectionId, "平台供应商连接标识不能为空");

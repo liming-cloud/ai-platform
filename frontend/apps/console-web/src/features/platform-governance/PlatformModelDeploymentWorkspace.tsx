@@ -1,195 +1,161 @@
-import {
-  Badge,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogBody,
-  DialogContent,
-  DialogSurface,
-  DialogTitle,
-  Field,
-  Input,
-  Select,
-  Text,
-  Title3,
-} from "@fluentui/react-components";
-import { StatePanel } from "@foundation/design-system";
-import { type FormEvent, useCallback, useEffect, useState } from "react";
-import {
-  ApiRequestError,
-  type ControlPlaneClient,
-  type ControlledModelCatalogEntry,
-  type PlatformModelDeploymentSummary,
-  type PlatformProviderModelCandidate,
-} from "../../api/control-plane-client";
+import { PlatformModelSupplyNavigation } from "./PlatformModelSupplyNavigation";
+import { Button, Dialog, DialogSurface } from "@fluentui/react-components";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ApiRequestError, type ControlPlaneClient, type PageResult, type PlatformModelDeploymentSummary } from "../../api/control-plane-client";
 import type { ConsoleRoute } from "../../session/console-route";
+import { PlatformConnectionPagination } from "./PlatformConnectionPagination";
+import { PlatformModelDeploymentForm, typeLabel } from "./PlatformModelDeploymentForm";
+import { readPlatformDeployments, settleDeploymentReads } from "./platform-deployment-read";
+import "./platform-model-connections.css";
+import "./platform-model-deployments.css";
 
-type DeploymentRoute = Extract<ConsoleRoute, { navigationId: "platform-model-supply"; task: "deployments" }>;
-type ViewState = "unauthenticated" | "loading" | "ready" | "error";
-const PROBE_TIMEOUT_MILLIS = 10_000;
+type DeploymentRoute = Extract<ConsoleRoute, { navigationId: "platform-model-supply"; task: "deployments" | "deployment-detail" }>;
+type ReadState = "loading" | "ready" | "partial" | "disabled" | "empty" | "error" | "denied" | "stale";
 
-interface Failure { message: string; traceId: string; }
-
-/** 平台管理员在独立任务中把当前发现候选转化为可验证、发布或停用的共享部署。 */
-export function PlatformModelDeploymentWorkspace({
-  client, route, sessionRevision, onRouteChange,
-}: {
-  client: ControlPlaneClient;
-  route: DeploymentRoute;
-  sessionRevision: number;
-  onRouteChange: (route: ConsoleRoute) => void;
+/** 目录与精确详情承接同一草稿快照；身份替换、重读和离开页面均撤下旧表单及迟到响应。 */
+export function PlatformModelDeploymentWorkspace({ client, route, sessionRevision, onRouteChange }: {
+  client: ControlPlaneClient; route: DeploymentRoute; sessionRevision: number;
+  onRouteChange: (route: ConsoleRoute, replace?: boolean) => void;
 }) {
-  const [viewState, setViewState] = useState<ViewState>("unauthenticated");
-  const [deployments, setDeployments] = useState<PlatformModelDeploymentSummary[]>([]);
-  const [deploymentTotal, setDeploymentTotal] = useState(0);
-  const [deploymentPrevious, setDeploymentPrevious] = useState(false);
-  const [deploymentNext, setDeploymentNext] = useState(false);
-  const [candidates, setCandidates] = useState<PlatformProviderModelCandidate[]>([]);
-  const [candidateTotal, setCandidateTotal] = useState(0);
-  const [candidatePrevious, setCandidatePrevious] = useState(false);
-  const [candidateNext, setCandidateNext] = useState(false);
-  const [failure, setFailure] = useState<Failure>();
-  const [creationCandidate, setCreationCandidate] = useState<PlatformProviderModelCandidate>();
-  const [confirmationCandidate, setConfirmationCandidate] = useState<PlatformProviderModelCandidate>();
-  const [confirmationModelType, setConfirmationModelType] = useState<"CHAT" | "EMBEDDING">("CHAT");
-  const [probeTarget, setProbeTarget] = useState<PlatformModelDeploymentSummary>();
-  const [publishTarget, setPublishTarget] = useState<PlatformModelDeploymentSummary>();
-  const [disableTarget, setDisableTarget] = useState<PlatformModelDeploymentSummary>();
-  const [catalogCreationTarget, setCatalogCreationTarget] = useState<PlatformModelDeploymentSummary>();
-  const [catalogPublishTarget, setCatalogPublishTarget] = useState<ControlledModelCatalogEntry>();
-  const [submitting, setSubmitting] = useState(false);
-
-  const loadDeployments = useCallback(async () => {
-    if (!client.hasSession()) { setViewState("unauthenticated"); return; }
-    setViewState("loading"); setFailure(undefined);
+  const [state, setState] = useState<ReadState>("loading");
+  const [result, setResult] = useState<Awaited<ReturnType<typeof readPlatformDeployments>>>();
+  const [creating, setCreating] = useState(false);
+  const [creatingBusy, setCreatingBusy] = useState(false);
+  const [feedback, setFeedback] = useState("");
+  const [busy, setBusy] = useState(true);
+  const [tenantNames, setTenantNames] = useState<string[]>();
+  const owner = useRef(0), pending = useRef(false);
+  const heading = useRef<HTMLHeadingElement>(null), focused = useRef(false);
+  const detail = route.task === "deployment-detail";
+  const load = useCallback(async () => {
+    const token = ++owner.current;
+    setCreating(false); setCreatingBusy(false); focused.current = false; setFeedback(""); setResult(undefined); setTenantNames(undefined); setState("loading"); setBusy(true);
+    if (!client.hasSession()) { setState("stale"); setBusy(false); return; }
     try {
-      const page = await client.listPlatformModelDeployments(route.deploymentPage);
-      setDeployments(page.items); setDeploymentTotal(page.totalElements);
-      setDeploymentPrevious(page.hasPrevious); setDeploymentNext(page.hasNext); setViewState("ready");
-    } catch (error) { setFailure(toFailure(error)); setViewState("error"); }
-  }, [client, route.deploymentPage]);
+      const read = await readPlatformDeployments(client, route.task === "deployment-detail" ? { id: route.deploymentId }
+        : { page: route.deploymentPage, size: route.pageSize ?? 20 });
+      if (token !== owner.current) return;
+      let kind = read.kind;
+      if (route.task === "deployment-detail") {
+        const deployment = read.data as PlatformModelDeploymentSummary;
+        if (deployment.inputs) {
+          const names: string[] = [];
+          // 有界分批读取明确选择的租户名称，不遍历整个租户目录，也不把 ID 作为页面名称。
+          const ids = deployment.inputs.plannedTenantIds;
+          for (let start = 0; start < ids.length; start += 10) {
+            const batch = await settleDeploymentReads(ids.slice(start, start + 10).map(id => client.getTenantLifecycle(id)));
+            if (token !== owner.current) return;
+            for (const item of batch) if (item.status === "rejected" && item.reason instanceof ApiRequestError
+              && (item.reason.status === 401 || item.reason.status === 403)) throw item.reason;
+            for (let index = 0; index < batch.length; index++) {
+              const item = batch[index]!;
+              if (item.status === "fulfilled") {
+                if (item.value.tenantId !== ids[start + index] || !item.value.displayName) throw new Error("invalid-tenant-binding");
+                names.push(item.value.displayName);
+              } else if (item.reason instanceof ApiRequestError && (item.reason.status >= 500
+                || (item.reason.status === 0 && item.reason.code === "NETWORK_UNAVAILABLE"))) kind = "partial";
+              else throw item.reason;
+            }
+          }
+          if (names.length === ids.length) setTenantNames(names);
+        }
+      } else {
+        const page = read.data as PageResult<PlatformModelDeploymentSummary>;
+        const last = Math.max(1, Math.ceil(page.totalElements / (route.pageSize ?? 20)));
+        if (route.deploymentPage > last) { onRouteChange({ ...route, deploymentPage: last }, true); return; }
+      }
+      if (token !== owner.current) return;
+      setResult(read); setState(kind);
+    } catch (error) {
+      if (token !== owner.current) return;
+      setResult(undefined); setTenantNames(undefined);
+      setState(!client.hasSession() ? "stale" : error instanceof ApiRequestError && error.status === 403 ? "denied"
+        : route.task === "deployment-detail" && error instanceof ApiRequestError && error.status === 404 && error.code === "MODEL_RUNTIME.RESOURCE.0002" ? "empty" : "error");
+    } finally { if (token === owner.current) setBusy(false); }
+  }, [client, route, onRouteChange]);
+  useEffect(() => {
+    const ownership = owner;
+    const timer = window.setTimeout(() => void load(), 0);
+    return () => { window.clearTimeout(timer); ownership.current++; };
+  }, [load, sessionRevision]);
+  useEffect(() => {
+    if (state === "loading" || focused.current) return;
+    const frame = window.requestAnimationFrame(() => { heading.current?.focus(); focused.current = true; });
+    return () => window.cancelAnimationFrame(frame);
+  }, [state]);
 
-  const loadCandidates = useCallback(async () => {
-    if (route.connectionId === undefined || route.connectionVersion === undefined || !client.hasSession()) {
-      setCandidates([]); setCandidateTotal(0); setCandidatePrevious(false); setCandidateNext(false); return;
-    }
+  const directory = { navigationId: "platform-model-supply", task: "deployments", candidatePage: 1,
+    deploymentPage: route.task === "deployment-detail" ? route.directoryPage ?? 1 : route.deploymentPage,
+    pageSize: route.pageSize ?? 20 } as const;
+  const page = !detail && result ? result.data as PageResult<PlatformModelDeploymentSummary> : undefined;
+  const deployment = detail && result ? result.data as PlatformModelDeploymentSummary : undefined;
+  const readable = state === "ready" || state === "partial" || state === "disabled";
+  const writable = state === "ready" && !busy;
+
+  async function operate() {
+    if (!deployment || !writable || pending.current) return;
+    pending.current = true; setBusy(true); setFeedback("");
+    const token = owner.current;
     try {
-      const page = await client.listPlatformProviderModelCandidates(
-        route.connectionId, route.connectionVersion, route.candidatePage,
-      );
-      setCandidates(page.items); setCandidateTotal(page.totalElements);
-      setCandidatePrevious(page.hasPrevious); setCandidateNext(page.hasNext);
-    } catch (error) { setFailure(toFailure(error)); }
-  }, [client, route.candidatePage, route.connectionId, route.connectionVersion]);
-
-  useEffect(() => { const timer = window.setTimeout(() => void loadDeployments(), 0); return () => window.clearTimeout(timer); }, [loadDeployments, sessionRevision]);
-  useEffect(() => { const timer = window.setTimeout(() => void loadCandidates(), 0); return () => window.clearTimeout(timer); }, [loadCandidates, sessionRevision]);
-
-  async function createDeployment(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (creationCandidate === undefined || route.connectionId === undefined || route.connectionVersion === undefined) return;
-    const modelType = creationCandidate.modelType;
-    if (modelType === null) return;
-    const candidate = creationCandidate;
-    const values = new FormData(event.currentTarget);
-    const displayName = String(values.get("displayName") ?? "").trim();
-    const contextWindow = Number(values.get("contextWindow"));
-    const outputLimit = modelType === "CHAT" ? Number(values.get("outputLimit")) : null;
-    const embeddingDimension = modelType === "EMBEDDING" ? Number(values.get("embeddingDimension")) : null;
-    if (!displayName || !Number.isInteger(contextWindow) || contextWindow < 1
-      || (outputLimit !== null && (!Number.isInteger(outputLimit) || outputLimit < 1))
-      || (embeddingDimension !== null && (!Number.isInteger(embeddingDimension) || embeddingDimension < 1))) {
-      setFailure({ message: "请填写有效的部署名称、上下文窗口及当前模型类型所需参数。", traceId: "" }); return;
-    }
-    setSubmitting(true); setFailure(undefined);
-    try {
-      await client.createPlatformModelDeployment({
-        providerConnectionId: route.connectionId, expectedConnectionVersion: route.connectionVersion,
-        modelCode: candidate.modelCode, displayName, modelType,
-        capabilities: candidate.capabilities, contextWindow, outputLimit, embeddingDimension,
-      });
-      setCreationCandidate(undefined); await loadDeployments();
-    } catch (error) { setFailure(toFailure(error)); } finally { setSubmitting(false); }
+      if (deployment.status === "VERIFIED") await client.publishPlatformModelDeployment(deployment.id, deployment.version);
+      else await client.probePlatformModelDeployment(deployment.id, deployment.version, 30_000);
+      if (token === owner.current) await load();
+    } catch (error) {
+      if (token === owner.current) setFeedback(error instanceof ApiRequestError ? error.message : "操作未完成，请重新载入后重试。");
+    } finally { pending.current = false; if (token === owner.current) setBusy(false); }
   }
 
-  async function confirmCandidate() {
-    if (confirmationCandidate === undefined
-      || route.connectionId === undefined || route.connectionVersion === undefined) return;
-    setSubmitting(true); setFailure(undefined);
-    try {
-      await client.confirmPlatformProviderModelCandidate(
-        route.connectionId, route.connectionVersion,
-        confirmationCandidate.modelCode, confirmationModelType,
-      );
-      setConfirmationCandidate(undefined);
-      await loadCandidates();
-    } catch (error) { setFailure(toFailure(error)); } finally { setSubmitting(false); }
-  }
-
-  async function probeDeployment() {
-    if (probeTarget === undefined) return;
-    setSubmitting(true); setFailure(undefined);
-    try { await client.probePlatformModelDeployment(probeTarget.id, probeTarget.version, PROBE_TIMEOUT_MILLIS); setProbeTarget(undefined); await loadDeployments(); }
-    catch (error) { setFailure(toFailure(error)); } finally { setSubmitting(false); }
-  }
-  async function publishDeployment() {
-    if (publishTarget === undefined) return;
-    setSubmitting(true); setFailure(undefined);
-    try { await client.publishPlatformModelDeployment(publishTarget.id, publishTarget.version); setPublishTarget(undefined); await loadDeployments(); }
-    catch (error) { setFailure(toFailure(error)); } finally { setSubmitting(false); }
-  }
-  async function disableDeployment() {
-    if (disableTarget === undefined) return;
-    setSubmitting(true); setFailure(undefined);
-    try { await client.disablePlatformModelDeployment(disableTarget.id, disableTarget.version); setDisableTarget(undefined); await loadDeployments(); }
-    catch (error) { setFailure(toFailure(error)); } finally { setSubmitting(false); }
-  }
-  async function createCatalogDraft() {
-    if (catalogCreationTarget === undefined) return;
-    setSubmitting(true); setFailure(undefined);
-    try {
-      const entry = await client.createControlledModelCatalogFromDeployment(
-        catalogCreationTarget.id, catalogCreationTarget.version,
-      );
-      setCatalogCreationTarget(undefined); setCatalogPublishTarget(entry);
-    } catch (error) { setFailure(toFailure(error)); } finally { setSubmitting(false); }
-  }
-  async function publishCatalog() {
-    if (catalogPublishTarget === undefined) return;
-    setSubmitting(true); setFailure(undefined);
-    try { await client.publishControlledModelCatalog(catalogPublishTarget.id); setCatalogPublishTarget(undefined); await loadDeployments(); }
-    catch (error) { setFailure(toFailure(error)); } finally { setSubmitting(false); }
-  }
-
-  if (viewState === "unauthenticated") return <StatePanel kind="stale" title="浏览器会话已经失效" description="平台模型部署摘要已清除，请重新登录。" actionLabel="返回登录入口" onAction={() => window.location.assign("/")} />;
-  if (viewState === "loading") return <StatePanel kind="loading" title="正在加载平台模型部署" description="正在准备部署和可用模型候选。" />;
-  if (viewState === "error") return <StatePanel kind="error" title="平台模型部署暂时不可用" description={failureDescription(failure)} actionLabel="重新加载" onAction={() => void loadDeployments()} />;
-
-  return <div className="model-configuration-workspace">
-    <div className="governance-toolbar"><Text>候选、部署和验证状态按页显示；Endpoint 和凭据不会在列表中展示。</Text><div className="task-actions"><Button appearance="secondary" onClick={() => onRouteChange({ navigationId: "platform-model-supply", task: "connections", page: 1 })}>返回平台连接</Button><Button appearance="subtle" onClick={() => { void loadDeployments(); void loadCandidates(); }}>刷新</Button></div></div>
-    {failure === undefined ? null : <p role="alert">{failureDescription(failure)}</p>}
-    <section className="model-configuration-section" aria-label="平台当前发现候选"><header className="task-heading"><Title3>当前发现候选</Title3><Text>{route.connectionId === undefined ? "请从平台连接页面选择已验证连接。" : "只显示当前连接最新且仍可用的候选。"}</Text></header>
-      {route.connectionId === undefined ? null : <><div className="member-directory-table" role="region" aria-label="平台模型候选分页表格"><table><thead><tr><th>模型名称</th><th>类型</th><th>能力</th><th>操作</th></tr></thead><tbody>{candidates.length === 0 ? <tr><td colSpan={4}>当前页没有模型候选；请重新执行模型发现。</td></tr> : candidates.map((candidate) => <tr key={`${candidate.modelCode}:${candidate.modelType}`}><td>{candidate.modelCode}</td><td>{candidate.modelType === "CHAT" ? "对话" : candidate.modelType === "EMBEDDING" ? "嵌入" : "待管理员确认"}</td><td>{candidate.capabilities.length === 0 ? "待确认" : candidate.capabilities.join("、")}</td><td>{candidate.modelType === null ? <Button appearance="primary" disabled={submitting} onClick={() => { setConfirmationModelType("CHAT"); setConfirmationCandidate(candidate); }}>确认模型类型</Button> : <Button appearance="primary" disabled={submitting} onClick={() => setCreationCandidate(candidate)}>新建草稿部署</Button>}</td></tr>)}</tbody></table></div><Pagination label="当前发现候选" page={route.candidatePage} total={candidateTotal} hasPrevious={candidatePrevious} hasNext={candidateNext} onPrevious={() => onRouteChange({ ...route, candidatePage: route.candidatePage - 1 })} onNext={() => onRouteChange({ ...route, candidatePage: route.candidatePage + 1 })} /></>}
-    </section>
-    <section className="model-configuration-section" aria-label="平台模型部署目录"><header className="task-heading"><Title3>平台模型部署</Title3><Text>草稿必须完成最小真实能力探测；仅验证有效的部署可发布，停用会阻断新调用。</Text></header><div className="member-directory-table" role="region" aria-label="平台模型部署分页表格"><table><thead><tr><th>部署</th><th>模型</th><th>状态</th><th>可用性</th><th>验证有效期</th><th>操作</th></tr></thead><tbody>{deployments.length === 0 ? <tr><td colSpan={6}>当前页没有平台模型部署。</td></tr> : deployments.map((deployment) => <tr key={deployment.id}><td>{deployment.displayName}</td><td>{deployment.modelCode} · {deployment.modelType === "CHAT" ? "对话" : "嵌入"}</td><td><Badge appearance="tint" color={deployment.status === "PUBLISHED" ? "success" : deployment.status === "VERIFIED" ? "brand" : deployment.status === "DISABLED" ? "danger" : "warning"}>{deploymentStatusLabel(deployment.status)}</Badge></td><td><Badge appearance="tint" color={deployment.availability === "HEALTHY" ? "success" : deployment.availability === "DEGRADED" ? "warning" : "danger"}>{availabilityLabel(deployment.availability)}</Badge><br /><Text size={200}>建议：{nextStepLabel(deployment.nextStep)}</Text></td><td>{deployment.verificationExpiresAt === null ? "待真实能力验证" : new Date(deployment.verificationExpiresAt).toLocaleString("zh-CN")}</td><td><div className="task-actions"><Button appearance="secondary" disabled={submitting || deployment.status !== "DRAFT"} onClick={() => setProbeTarget(deployment)}>探测能力</Button><Button appearance="primary" disabled={submitting || deployment.status !== "VERIFIED"} onClick={() => setPublishTarget(deployment)}>发布部署</Button><Button appearance="primary" disabled={submitting || deployment.status !== "PUBLISHED" || deployment.availability !== "HEALTHY"} onClick={() => setCatalogCreationTarget(deployment)}>建立目录</Button><Button appearance="secondary" disabled={submitting || deployment.status === "DISABLED"} onClick={() => setDisableTarget(deployment)}>停用部署</Button></div></td></tr>)}</tbody></table></div><Pagination label="平台模型部署" page={route.deploymentPage} total={deploymentTotal} hasPrevious={deploymentPrevious} hasNext={deploymentNext} onPrevious={() => onRouteChange({ ...route, deploymentPage: route.deploymentPage - 1 })} onNext={() => onRouteChange({ ...route, deploymentPage: route.deploymentPage + 1 })} /></section>
-    <Dialog open={creationCandidate !== undefined} onOpenChange={(_, data) => { if (!data.open && !submitting) setCreationCandidate(undefined); }}><DialogSurface><DialogBody><DialogTitle>新建平台草稿部署</DialogTitle><form className="foundation-dialog-form" onSubmit={(event) => void createDeployment(event)}><DialogContent>{creationCandidate === undefined ? null : <><Text>选择的候选为 {creationCandidate.modelCode}（{creationCandidate.modelType}）。提交时系统会再次确认该模型仍然可用。</Text><Field label="部署名称" required><Input name="displayName" autoFocus disabled={submitting} /></Field><Field label="上下文窗口" required><Input name="contextWindow" type="number" min={1} defaultValue="8192" disabled={submitting} /></Field>{creationCandidate.modelType === "CHAT" ? <Field label="输出上限" required><Input name="outputLimit" type="number" min={1} defaultValue="1024" disabled={submitting} /></Field> : <Field label="嵌入维度" required><Input name="embeddingDimension" type="number" min={1} defaultValue="1024" disabled={submitting} /></Field>}</>}</DialogContent><DialogActions><Button appearance="secondary" type="button" disabled={submitting} onClick={() => setCreationCandidate(undefined)}>取消</Button><Button appearance="primary" type="submit" disabled={submitting}>{submitting ? "正在创建" : "创建草稿"}</Button></DialogActions></form></DialogBody></DialogSurface></Dialog>
-    <Dialog open={confirmationCandidate !== undefined} onOpenChange={(_, data) => { if (!data.open && !submitting) setConfirmationCandidate(undefined); }}><DialogSurface><DialogBody><DialogTitle>确认模型类型</DialogTitle><DialogContent><Text>供应商未提供足够的能力元数据。请选择 {confirmationCandidate?.modelCode ?? "该候选"} 的模型类型；确认不会替代后续真实能力探测。</Text><Field label="模型类型" required><Select value={confirmationModelType} disabled={submitting} onChange={(_, data) => setConfirmationModelType(data.value as "CHAT" | "EMBEDDING")}><option value="CHAT">对话</option><option value="EMBEDDING">嵌入</option></Select></Field></DialogContent><DialogActions><Button appearance="secondary" disabled={submitting} onClick={() => setConfirmationCandidate(undefined)}>取消</Button><Button appearance="primary" disabled={submitting} onClick={() => void confirmCandidate()}>{submitting ? "正在确认" : "确认类型"}</Button></DialogActions></DialogBody></DialogSurface></Dialog>
-    <ConfirmationDialog open={probeTarget !== undefined} title="确认执行真实能力探测" description={`系统将对 ${probeTarget?.displayName ?? "该部署"} 发起最小真实模型调用。成功验证只在固定有效期内允许发布。`} busy={submitting} action="执行探测" onClose={() => setProbeTarget(undefined)} onConfirm={() => void probeDeployment()} />
-    <ConfirmationDialog open={publishTarget !== undefined} title="确认发布平台模型部署" description={`发布 ${publishTarget?.displayName ?? "该部署"} 前会重新核验连接状态和验证有效期。`} busy={submitting} action="确认发布" onClose={() => setPublishTarget(undefined)} onConfirm={() => void publishDeployment()} />
-    <ConfirmationDialog open={disableTarget !== undefined} title="确认停用平台模型部署" description={`停用 ${disableTarget?.displayName ?? "该部署"} 会阻断新目录发布和调用，停用后不可恢复。`} busy={submitting} action="确认停用" onClose={() => setDisableTarget(undefined)} onConfirm={() => void disableDeployment()} />
-    <ConfirmationDialog open={catalogCreationTarget !== undefined} title="确认建立平台目录草稿" description={`目录将记录 ${catalogCreationTarget?.displayName ?? "该部署"} 当前已经验证的能力和可用状态。`} busy={submitting} action="建立目录草稿" onClose={() => setCatalogCreationTarget(undefined)} onConfirm={() => void createCatalogDraft()} />
-    <ConfirmationDialog open={catalogPublishTarget !== undefined} title="确认发布平台目录" description={`发布 ${catalogPublishTarget?.modelCode ?? "该目录"} 前会再次校验平台部署状态和验证有效期。`} busy={submitting} action="确认发布目录" onClose={() => setCatalogPublishTarget(undefined)} onConfirm={() => void publishCatalog()} />
+  return <div className="platform-connection-page platform-deployment-page" data-read-state={state}>
+    <header className="platform-connection-page__heading"><p className="platform-connection-page__context">模型治理</p>
+      <div className="platform-connection-page__copy"><h1 ref={heading} tabIndex={-1}>{detail ? "平台部署发布" : "平台模型部署"}</h1>
+        {readable ? <div className="platform-connection-object-line">{state === "partial" ? "部分完成" : state === "disabled" ? "暂不可用"
+          : deployment ? statusLabel(deployment.status) : `${result?.facts?.counts.published ?? 0} 个可授权部署`}</div> : null}</div>
+      {detail ? <Button appearance="secondary" onClick={() => onRouteChange(directory)}>返回部署目录</Button>
+        : <Button className="platform-connection-create" appearance="primary" disabled={!writable} onClick={() => setCreating(true)}>建立部署草稿</Button>}
+    </header>
+    <PlatformModelSupplyNavigation active="deployments" onRouteChange={onRouteChange} />
+    {!readable ? <ReadState kind={state} detail={detail} onRetry={() => void load()} /> : <>
+      <div className="platform-connection-note" role={state === "partial" ? "status" : undefined}>
+        {state === "partial" ? <><p>{detail ? "租户授权事实暂未取得，本页只读；不能发布或扩大授权。" : "授权摘要暂未取得，本页暂为只读；已确认的部署仍可查看。"}</p><Button appearance="secondary" onClick={() => void load()}>重新载入</Button></>
+          : detail ? "冻结连接版本、模型能力、拟授权租户和驻留范围后执行验证。" : "平台部署发布后只进入可授权目录，不会自动授予未选择的租户，也不会修改租户配置、索引或助手。"}
+      </div>
+      {page ? page.items.length === 0 ? <ReadState kind="empty" detail={false} onRetry={() => void load()} /> : <div className="platform-connection-table" role="region" aria-label="平台模型部署目录">
+        <table><thead><tr>{["部署", "能力", "授权范围", "状态", "操作"].map(label => <th key={label} scope="col">{label}</th>)}</tr></thead><tbody>{page.items.map(item => <tr key={item.id}>
+          <td data-label="部署"><strong>{item.displayName}</strong><small className="deployment-residency">{item.inputs?.residency ?? "驻留范围暂未取得"}</small></td>
+          <td data-label="能力">{typeLabel(item.modelType)}</td><td data-label="授权范围">{state === "partial" || !item.inputs ? "暂未取得" : `${item.status === "PUBLISHED" ? "" : "拟授权 "}${item.inputs.plannedTenantIds.length} 个租户`}</td>
+          <td data-label="状态"><DeploymentStatus deployment={item} /></td><td data-label="操作"><Button appearance="subtle" aria-label={`查看${item.displayName}`} onClick={() => onRouteChange({ navigationId: "platform-model-supply", task: "deployment-detail", deploymentId: item.id, directoryPage: page.pageNumber, pageSize: directory.pageSize })}>查看</Button></td>
+        </tr>)}</tbody></table><PlatformConnectionPagination label="平台模型部署分页" total={page.totalElements} page={page.pageNumber} size={directory.pageSize} disabled={busy}
+          onChange={(deploymentPage, pageSize) => onRouteChange({ ...directory, deploymentPage, pageSize })} /></div> : null}
+      {deployment ? <div className="platform-connection-detail"><div><section className="platform-connection-section platform-connection-section--facts"><div className="platform-connection-section__heading"><div><span className="platform-connection-kicker">平台部署</span><h2>{deployment.displayName}</h2></div><DeploymentStatus deployment={deployment} /></div>
+        <dl className="platform-connection-descriptions"><Fact label="连接" value={deployment.connectionDisplayName} /><Fact label="能力" value={typeLabel(deployment.modelType)} />
+          <Fact label="驻留范围" value={deployment.inputs?.residency ?? "暂未取得"} /><Fact label={deployment.status === "PUBLISHED" ? "已授权租户" : "拟授权租户"} value={state === "partial" ? "暂未取得" : tenantNames?.join("、") ?? "暂未取得"} />
+          <Fact label="声明上下文" value={`${deployment.contextWindow} Token`} />{deployment.outputLimit !== null ? <Fact label="声明输出上限" value={`${deployment.outputLimit} Token`} /> : null}
+          {deployment.embeddingDimension !== null ? <Fact label="声明向量维度" value={String(deployment.embeddingDimension)} /> : null}
+          {deployment.inputs?.rerankCandidateLimit != null ? <Fact label="声明候选上限" value={String(deployment.inputs.rerankCandidateLimit)} /> : null}
+          <Fact label="参数来源" value={deployment.inputs?.parameterSource ?? "历史输入未声明；不能作为验证依据"} />
+          <Fact label="最近验证" value={deployment.verifiedAt ? new Date(deployment.verifiedAt).toLocaleString("zh-CN") : "尚未验证"} />
+        </dl></section></div><aside><section className="platform-connection-release"><span className="platform-connection-kicker">发布决定</span><h2>验证通过后进入授权目录</h2><p>发布只对明确选中的有效租户生效，不会自动生成租户配置、索引或助手变更。</p>
+          <p className="deployment-help">本次验证：最多 3 次请求、128 字符合成输入、单次输出上限 64 Token、总超时 30 秒。月度费用未核验。</p>
+          <div className="platform-connection-release-actions"><Button appearance="primary" disabled={deployment.status !== "PUBLISHED" && (!writable || deployment.status === "DISABLED")} onClick={() => deployment.status === "PUBLISHED" ? onRouteChange(directory) : void operate()}>
+            {deployment.status === "PUBLISHED" ? "返回部署目录" : deployment.status === "VERIFIED" ? "发布部署" : "执行能力验证"}</Button></div>{feedback ? <p className="deployment-feedback" role="alert">{feedback}</p> : null}
+        </section></aside></div> : null}
+    </>}
+    <Dialog open={creating} onOpenChange={(_, data) => { if (!data.open && !creatingBusy) setCreating(false); }}><DialogSurface className="foundation-task-dialog platform-deployment-dialog" backdrop={{ className: "platform-connection-backdrop" }}>
+      {creating ? <PlatformModelDeploymentForm client={client} onSavingChange={setCreatingBusy} onClose={() => setCreating(false)} onCreated={id => { setCreating(false); onRouteChange({ navigationId: "platform-model-supply", task: "deployment-detail", deploymentId: id, directoryPage: directory.deploymentPage, pageSize: directory.pageSize }); }} /> : null}
+    </DialogSurface></Dialog>
   </div>;
 }
-
-function ConfirmationDialog({ open, title, description, busy, action, onClose, onConfirm }: { open: boolean; title: string; description: string; busy: boolean; action: string; onClose: () => void; onConfirm: () => void; }) {
-  return <Dialog open={open} onOpenChange={(_, data) => { if (!data.open && !busy) onClose(); }}><DialogSurface><DialogBody><DialogTitle>{title}</DialogTitle><DialogContent><Text>{description}</Text></DialogContent><DialogActions><Button appearance="secondary" disabled={busy} onClick={onClose}>取消</Button><Button appearance="primary" disabled={busy} onClick={onConfirm}>{busy ? "正在处理" : action}</Button></DialogActions></DialogBody></DialogSurface></Dialog>;
+function Fact({ label, value }: { label: string; value: string }) { return <div><dt>{label}</dt><dd>{value}</dd></div>; }
+function statusLabel(status: PlatformModelDeploymentSummary["status"]): string { return ({ DRAFT: "草稿", VERIFIED: "验证通过", PUBLISHED: "已发布", DISABLED: "已停用" })[status]; }
+function DeploymentStatus({ deployment }: { deployment: PlatformModelDeploymentSummary }) {
+  return <span className="platform-connection-status" data-tone={deployment.status === "PUBLISHED" ? "success" : deployment.status === "VERIFIED" ? "info" : deployment.status === "DISABLED" ? "danger" : "warning"}>{statusLabel(deployment.status)}</span>;
 }
-function Pagination({ label, page, total, hasPrevious, hasNext, onPrevious, onNext }: { label: string; page: number; total: number; hasPrevious: boolean; hasNext: boolean; onPrevious: () => void; onNext: () => void; }) {
-  return <div className="pagination" aria-label={`${label}分页`}><Text>{label}：第 {page} 页，共 {total} 条</Text><Button appearance="secondary" disabled={!hasPrevious} onClick={onPrevious}>上一页</Button><Button appearance="secondary" disabled={!hasNext} onClick={onNext}>下一页</Button></div>;
+function ReadState({ kind, detail, onRetry }: { kind: ReadState; detail: boolean; onRetry: () => void }) {
+  const failed = kind === "error" || kind === "denied" || kind === "stale";
+  return <section className="platform-connection-empty platform-connection-read-state" data-kind={kind} role={kind === "loading" ? "status" : "region"} aria-label={kind === "empty" ? "空状态" : "页面读取状态"}>
+    <span className="platform-connection-empty__label">{kind === "loading" ? "加载中" : kind === "denied" ? "权限不足" : kind === "stale" ? "会话失效" : failed ? "加载失败" : "暂无记录"}</span>
+    <h2>{kind === "loading" ? "正在准备当前内容" : kind === "denied" ? "当前账号无权查看此页面" : kind === "stale" ? "请重新登录" : failed ? "暂时无法加载内容" : "当前没有可显示的记录"}</h2>
+    <p>{kind === "empty" ? detail ? "当前没有可查看的平台部署。请返回部署目录选择或建立草稿。" : "当前还没有平台模型部署。请选择已发布连接的模型，确认参数和拟授权租户后保存草稿。" : failed ? "当前事实未确认；请检查权限或重新载入。" : "正在读取最新状态，请稍候。"}</p>
+    {kind === "error" ? <Button appearance="secondary" onClick={onRetry}>重新载入</Button> : null}
+  </section>;
 }
-function failureDescription(failure: Failure | undefined): string { return failure?.message ?? "请求未完成。"; }
-function toFailure(error: unknown): Failure { return error instanceof ApiRequestError ? { message: error.message, traceId: error.traceId } : { message: "请求未完成，请稍后重试。", traceId: "" }; }
-function nextStepLabel(nextStep: PlatformModelDeploymentSummary["nextStep"]): string { return { VERIFY_CONNECTION: "验证厂商连接", PROBE_MODEL: "执行能力探测", REPROBE_MODEL: "重新执行能力探测", PUBLISH: "发布已验证部署", NONE: "无需操作" }[nextStep]; }
-function deploymentStatusLabel(status: PlatformModelDeploymentSummary["status"]): string { return { DRAFT: "草稿", VERIFIED: "已验证", PUBLISHED: "已发布", DISABLED: "已停用" }[status]; }
-function availabilityLabel(availability: PlatformModelDeploymentSummary["availability"]): string { return { HEALTHY: "可用", DEGRADED: "需关注", UNAVAILABLE: "不可用" }[availability]; }

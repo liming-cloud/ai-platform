@@ -144,9 +144,15 @@ public class ModelRuntimePersistenceAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     PlatformModelDeploymentRepository platformModelDeploymentRepository(
-            JdbcTemplate jdbc,
-            PlatformTransactionManager transactions) {
-        return new PostgresPlatformModelDeploymentRepository(jdbc, transactions);
+            com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformModelDeploymentMapper mapper,
+            com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformModelDeploymentRequestMapper requests,
+            PlatformTransactionManager transactions,
+            PostgresPlatformProviderModelDiscoveryStore discoveries,
+            org.springframework.beans.factory.ObjectProvider<com.aiplatform.foundation.security.identity.TenantActivityFacts> tenants) {
+        return new PostgresPlatformModelDeploymentRepository(mapper, requests, transactions, discoveries, discoveries,
+                () -> tenants.getIfAvailable(() -> { throw new com.aiplatform.foundation.shared.kernel.error.ApplicationException(
+                        com.aiplatform.foundation.modelruntime.domain.common.error.ModelRuntimeErrorCode.RUNTIME_UNAVAILABLE); }),
+                java.time.Clock.systemUTC());
     }
 
     @Bean

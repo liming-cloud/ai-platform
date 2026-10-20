@@ -115,6 +115,14 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 })
 public class OrganizationAccessPersistenceAutoConfiguration {
 
+    /** 活动事实属于只读持久化装配；查询进程关闭组织写用例时仍能安全装配模型读取。 */
+    @Bean
+    @ConditionalOnMissingBean
+    com.aiplatform.foundation.security.identity.TenantActivityFacts tenantActivityFacts(
+            com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleReadPort readPort) {
+        return readPort::requireActive;
+    }
+
     @Bean
     @ConditionalOnMissingBean
     com.aiplatform.foundation.organizationaccess.application.accesspolicy.AccessPolicyStore accessPolicyStore(

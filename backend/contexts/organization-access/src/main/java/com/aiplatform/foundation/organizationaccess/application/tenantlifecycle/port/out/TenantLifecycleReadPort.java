@@ -21,6 +21,9 @@ public interface TenantLifecycleReadPort {
     /** 只读取指定租户的生命周期展示事实。 */
     Optional<TenantLifecycleView> find(long tenantId);
 
+    /** 在同一事务内锁定并确认活动状态，避免保存声明与停用互相穿越。 */
+    void requireActive(java.util.Set<Long> tenantIds);
+
     /** 读取已保存的独立配额事实，不将配置当成使用量。 */
     Optional<TenantQuotaView> quotas(long tenantId);
 }
