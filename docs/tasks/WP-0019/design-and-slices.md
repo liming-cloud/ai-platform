@@ -43,7 +43,7 @@ OpenDesign Cloud 的原项目注册目录与仓库 `docs/prototypes/wp-0016` 对
 
 代码图谱已对 `ModelConfigurationService`、`ChatRouteExecutor`、`ModelProviderWorkspace` 执行影响分析。配置变更涉及生命周期控制器及自动配置；路由涉及助手、查询及其装配测试；供应商页面涉及 `ConsoleApp`。因此按用例纵向切片，不批量重排六个上下文或另造启动模块。图谱不是编译、运行或安全验收证据。
 
-两条已登记分页债务分别随 S3／S4 清理：`ControlledModelCatalogEntryMapper#selectPublishedAvailablePage`、`ModelConfigurationMapper#selectVisiblePage`。先验证来源与授权过滤、固定排序及同范围总数，再在 infrastructure 使用 `Page/IPage` 并递减精确基线；不增加旧目录或手工分页回退。
+`ControlledModelCatalogEntryMapper#selectPublishedAvailablePage` 已随 S2 当前供应边界完成 `Page/IPage` 迁移，来源／授权过滤、固定排序及同范围总数通过，精确基线 4→3，见[供应交付证据](evidence/WP-0019-S2-supply-publication-delivery-20261021.md)；`ModelConfigurationMapper#selectVisiblePage` 仍随 S4 清理，不增加旧目录或手工分页回退。
 
 ## 业务所有权与调用边界
 
