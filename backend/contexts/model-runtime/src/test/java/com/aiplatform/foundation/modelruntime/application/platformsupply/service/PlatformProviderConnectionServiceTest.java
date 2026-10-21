@@ -48,7 +48,7 @@ class PlatformProviderConnectionServiceTest {
                             "private-endpoint-denied-0001", ProviderKind.OPENAI_COMPATIBLE,
                             PlatformModelDiscoveryProfile.OPENAI_MODELS_API,
                             new com.aiplatform.foundation.modelruntime.domain.platformsupply.model.preset.PlatformProviderPresetSelection(
-                                    "CUSTOM", "2026-10-12", "CHAT", null),
+                                    "CUSTOM", PlatformProviderPresets.VERSION, "CHAT", null),
                             "禁止私网", URI.create("https://127.0.0.1/v1"), "unspecified", AuthenticationType.API_KEY, key)));
         }
         assertEquals(List.of(), writer.references);
@@ -64,7 +64,7 @@ class PlatformProviderConnectionServiceTest {
                                 "partial-discovery-denied-0001", ProviderKind.OPENAI_COMPATIBLE,
                                 PlatformModelDiscoveryProfile.OPENAI_MODELS_API,
                                 new com.aiplatform.foundation.modelruntime.domain.platformsupply.model.preset.PlatformProviderPresetSelection(
-                                        "CUSTOM", "2026-10-12", "CHAT", null),
+                                        "CUSTOM", PlatformProviderPresets.VERSION, "CHAT", null),
                                 "不应接收控制面凭据", URI.create("https://models.example.invalid/v1"), "unspecified",
                                 AuthenticationType.API_KEY, key, accessKeyOnly ? discoveryKey : null,
                                 accessKeyOnly ? null : discoveryKey));
@@ -151,7 +151,7 @@ class PlatformProviderConnectionServiceTest {
                     "platform-ark-request-0001",
                     ProviderKind.OPENAI_COMPATIBLE,
                     PlatformModelDiscoveryProfile.VOLCENGINE_ARK_CONTROL_PLANE,
-                    new com.aiplatform.foundation.modelruntime.domain.platformsupply.model.preset.PlatformProviderPresetSelection("VOLCENGINE", "2026-10-12", "CHAT", null),
+                    new com.aiplatform.foundation.modelruntime.domain.platformsupply.model.preset.PlatformProviderPresetSelection("VOLCENGINE", PlatformProviderPresets.VERSION, "CHAT", null),
                     "火山方舟",
                     URI.create("https://ark.cn-beijing.volces.com/api/v3"),
                     "cn-beijing",
@@ -184,7 +184,7 @@ class PlatformProviderConnectionServiceTest {
                             "platform-connection-0001",
                             ProviderKind.OPENAI_COMPATIBLE,
                             com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDiscoveryProfile.OPENAI_MODELS_API,
-                            new com.aiplatform.foundation.modelruntime.domain.platformsupply.model.preset.PlatformProviderPresetSelection("CUSTOM", "2026-10-12", "CHAT", null),
+                            new com.aiplatform.foundation.modelruntime.domain.platformsupply.model.preset.PlatformProviderPresetSelection("CUSTOM", PlatformProviderPresets.VERSION, "CHAT", null),
                             "平台连接",
                             URI.create("https://models.example.com/v1"),
                             "本地研发",
@@ -218,7 +218,7 @@ class PlatformProviderConnectionServiceTest {
                 new PlatformProviderConnectionId(610000000000000001L),
                 ProviderKind.DETERMINISTIC,
                 com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDiscoveryProfile.DETERMINISTIC_CATALOG,
-                new com.aiplatform.foundation.modelruntime.domain.platformsupply.model.preset.PlatformProviderPresetSelection("CUSTOM", "2026-10-12", "CHAT", null),
+                new com.aiplatform.foundation.modelruntime.domain.platformsupply.model.preset.PlatformProviderPresetSelection("CUSTOM", PlatformProviderPresets.VERSION, "CHAT", null),
                 "平台确定性连接",
                 URI.create("memory://platform-model"),
                 "local",

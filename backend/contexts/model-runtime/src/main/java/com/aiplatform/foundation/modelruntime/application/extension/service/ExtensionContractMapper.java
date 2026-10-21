@@ -103,7 +103,9 @@ public final class ExtensionContractMapper {
                                                 candidate.modelType().name()),
                                 domainCapabilities(candidate.capabilities()),
                                 com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformModelCandidateClassification.valueOf(
-                                        candidate.classification().name()), candidate.displayName()))
+                                        candidate.classification().name()), candidate.displayName(), candidate.source() == null ? null
+                        : new com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformModelCandidateSource(
+                                candidate.source().profile(), candidate.source().listSource(), candidate.source().mappingVersion(), candidate.source().mappingDigest())))
                         .collect(Collectors.toUnmodifiableSet()),
                 observation.resultCode(), observation.elapsed(), observation.discoveredAt());
     }

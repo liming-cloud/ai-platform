@@ -47,7 +47,7 @@ class OpenAiCompatibleProviderAutoConfigurationTest {
                         () -> mock(PlatformProviderCredentialResolver.class))
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).getBeans(PlatformProviderModelDiscoverer.class).hasSize(2);
+                    assertThat(context).getBeans(PlatformProviderModelDiscoverer.class).hasSize(3);
                 });
     }
 

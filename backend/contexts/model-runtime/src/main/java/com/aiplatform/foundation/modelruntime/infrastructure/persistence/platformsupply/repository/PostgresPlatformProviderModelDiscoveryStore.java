@@ -58,6 +58,14 @@ public final class PostgresPlatformProviderModelDiscoveryStore
                 || !Objects.equals(connection.lastProbedAt(), discovery.discoveredAt())) {
             throw new IllegalArgumentException("平台模型发现必须绑定本次连接验证的新修订");
         }
+        boolean requiresSource = connection.discoveryProfile()
+                == com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDiscoveryProfile.SILICONFLOW_RERANK_MODELS_API;
+        for (var candidate : discovery.models()) {
+            if ((requiresSource && candidate.source() == null)
+                    || (candidate.source() != null && !candidate.source().profile().equals(connection.discoveryProfile().name()))) {
+                throw new IllegalArgumentException("新官方重排候选必须绑定连接的精确发现协议来源");
+            }
+        }
         transactions.executeWithoutResult(status -> {
             // 先通过 CAS 占用当前修订，停用或轮换后的迟到响应不能留下发现事实。
             if (!connections.update(connection, expectedVersion)) {
@@ -168,7 +176,9 @@ public final class PostgresPlatformProviderModelDiscoveryStore
                 row.modelType() == null ? null : ModelType.valueOf(row.modelType()),
                 Arrays.stream(row.capabilities().split(",", -1)).filter(value -> !value.isEmpty())
                         .map(ModelCapability::valueOf).collect(Collectors.toUnmodifiableSet()),
-                PlatformModelCandidateClassification.valueOf(row.classification()), row.displayName());
+                PlatformModelCandidateClassification.valueOf(row.classification()), row.displayName(), row.sourceProfile() == null ? null
+                        : new com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformModelCandidateSource(
+                                row.sourceProfile(), row.listSource(), row.mappingVersion(), row.mappingDigest()));
     }
 
     private void recordInTransaction(PlatformProviderModelDiscovery discovery) {
@@ -179,7 +189,9 @@ public final class PostgresPlatformProviderModelDiscoveryStore
             candidateMapper.insertCandidate(discovery.id().value(), model.modelCode(),
                     model.modelType() == null ? null : model.modelType().name(),
                     model.capabilities().stream().map(Enum::name).sorted().collect(Collectors.joining(",")),
-                    model.classification().name(), model.displayName());
+                    model.classification().name(), model.displayName(), model.source() == null ? null : model.source().profile(),
+                    model.source() == null ? null : model.source().listSource(), model.source() == null ? null : model.source().mappingVersion(),
+                    model.source() == null ? null : model.source().mappingDigest());
         }
     }
 }

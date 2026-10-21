@@ -24,7 +24,9 @@ public interface PlatformProviderModelCandidateMapper {
     /** 名称为空表示来源未提供；不得在存储中使用编码补齐或更新历史名称。 */
     int insertCandidate(@Param("discoveryId") long discoveryId, @Param("modelCode") String modelCode,
             @Param("modelType") String modelType, @Param("capabilities") String capabilities,
-            @Param("classification") String classification, @Param("displayName") String displayName);
+            @Param("classification") String classification, @Param("displayName") String displayName,
+            @Param("sourceProfile") String sourceProfile, @Param("listSource") String listSource,
+            @Param("mappingVersion") String mappingVersion, @Param("mappingDigest") String mappingDigest);
 
     /** 仍按编码精确选择当前未过期的已确认候选。 */
     PlatformProviderModelCandidateRow selectCurrentCandidate(@Param("connectionId") long connectionId,

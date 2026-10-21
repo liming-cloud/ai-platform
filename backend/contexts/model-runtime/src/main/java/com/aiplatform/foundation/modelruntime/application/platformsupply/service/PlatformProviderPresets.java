@@ -12,7 +12,7 @@ import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind
 
 /** 承接已接受原型的五厂商预设，版本不表示厂商真实探测已完成。 */
 public final class PlatformProviderPresets {
-    public static final String VERSION = "2026-10-12";
+    public static final String VERSION = "2026-10-21";
     private static final PlatformProviderPresetsView VIEW = new PlatformProviderPresetsView(VERSION, List.of(
             preset("CUSTOM", "自定义连接", "unspecified", "自行配置", List.of(
                     variant("CHAT", "", false), variant("EMBEDDING", "", false), variant("RERANK", "", false))),
@@ -25,7 +25,7 @@ public final class PlatformProviderPresets {
             preset("SILICONFLOW", "硅基流动", "cn", "中国区", List.of(
                     variant("CHAT", "https://api.siliconflow.cn/v1", false),
                     variant("EMBEDDING", "https://api.siliconflow.cn/v1", false),
-                    variant("RERANK", "https://api.siliconflow.cn/v1/rerank", false))),
+                    new Variant("RERANK", "https://api.siliconflow.cn/v1/rerank", false, "VENDOR_POST_PROCESSOR", "SILICONFLOW_RERANK_MODELS_API"))),
             new Preset("VOLCENGINE", "火山方舟", "cn-beijing", "中国北京", List.of("CHAT"),
                     "VOLCENGINE_ARK_CONTROL_PLANE", List.of(new Variant("CHAT",
                     "https://ark.cn-beijing.volces.com/api/v3", false, "OPENAI_COMPATIBLE", "VOLCENGINE_ARK_CONTROL_PLANE")))), true);

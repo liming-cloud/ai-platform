@@ -4,10 +4,27 @@ import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.Platfo
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.preset.PlatformProviderPresetSelection;
 import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind;
 import java.net.URI;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class PlatformProviderPresetsTest {
+    @Test
+    void 仅硅基流动重排预设显式选择官方列表且旧版本不被静默升级() {
+        var rerank = PlatformProviderPresets.view().items().stream()
+                .filter(preset -> preset.id().equals("SILICONFLOW")).findFirst().orElseThrow()
+                .variants().stream().filter(variant -> variant.capability().equals("RERANK")).findFirst().orElseThrow();
+        assertEquals("SILICONFLOW_RERANK_MODELS_API", rerank.discoveryProfile());
+        assertEquals("VENDOR_POST_PROCESSOR", rerank.runtimeProtocol());
+        assertNotEquals("2026-10-12", PlatformProviderPresets.VERSION);
+        for (String id : List.of("CUSTOM", "ALIYUN")) {
+            var other = PlatformProviderPresets.view().items().stream().filter(preset -> preset.id().equals(id))
+                    .findFirst().orElseThrow().variants().stream()
+                    .filter(variant -> variant.capability().equals("RERANK")).findFirst().orElseThrow();
+            assertEquals("NONE", other.discoveryProfile());
+        }
+    }
+
     @Test
     void 五厂商全部显式能力组合按目录校验且不进行网络或秘密读取() {
         int checked = 0;
@@ -77,7 +94,7 @@ class PlatformProviderPresetsTest {
         }
         var rerank = new PlatformProviderPresetSelection("SILICONFLOW", PlatformProviderPresets.VERSION, "RERANK", null);
         assertDoesNotThrow(() -> PlatformProviderPresets.validate(rerank, ProviderKind.OPENAI_COMPATIBLE,
-                PlatformModelDiscoveryProfile.NONE, URI.create("https://api.siliconflow.cn/v1/rerank"), "cn"));
+                PlatformModelDiscoveryProfile.SILICONFLOW_RERANK_MODELS_API, URI.create("https://api.siliconflow.cn/v1/rerank"), "cn"));
         assertThrows(IllegalArgumentException.class, () -> PlatformProviderPresets.validate(rerank, ProviderKind.OPENAI_COMPATIBLE,
                 PlatformModelDiscoveryProfile.OPENAI_MODELS_API, URI.create("https://api.siliconflow.cn/v1/rerank"), "cn"));
     }

@@ -9,7 +9,7 @@ public record PlatformDiscoveredModelCandidate(
         ModelType modelType,
         Set<ModelCapability> capabilities,
         PlatformModelCandidateClassification classification,
-        String displayName) {
+        String displayName, PlatformModelCandidateSource source) {
 
     /**
      * 校验不可变候选；缺失名称不得改变原分类，显式名称不接受空白或控制字符。
@@ -47,6 +47,12 @@ public record PlatformDiscoveredModelCandidate(
                 throw new IllegalArgumentException("已确认重排候选只能声明重排能力");
             }
         }
+    }
+
+    /** 历史候选不补写来源，新增官方映射由发现适配器显式提供完整来源。 */
+    public PlatformDiscoveredModelCandidate(String modelCode, ModelType modelType,
+            Set<ModelCapability> capabilities, PlatformModelCandidateClassification classification, String displayName) {
+        this(modelCode, modelType, capabilities, classification, displayName, null);
     }
 
     /** 无名称的既有候选保持明确缺失，不改变类型和能力事实。 */

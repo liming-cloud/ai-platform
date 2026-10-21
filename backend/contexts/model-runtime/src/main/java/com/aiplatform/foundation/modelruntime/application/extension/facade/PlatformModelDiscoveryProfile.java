@@ -5,5 +5,6 @@ public enum PlatformModelDiscoveryProfile {
     DETERMINISTIC_CATALOG,
     OPENAI_MODELS_API,
     VOLCENGINE_ARK_CONTROL_PLANE,
+    SILICONFLOW_RERANK_MODELS_API,
     NONE
 }

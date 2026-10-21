@@ -12,6 +12,7 @@ import com.aiplatform.foundation.provider.openaicompatible.OpenAiCompatibleConne
 import com.aiplatform.foundation.provider.openaicompatible.OpenAiCompatiblePlatformModelDeploymentProbe;
 import com.aiplatform.foundation.provider.openaicompatible.OpenAiCompatiblePlatformProviderModelDiscoverer;
 import com.aiplatform.foundation.provider.openaicompatible.VolcengineArkPlatformProviderModelDiscoverer;
+import com.aiplatform.foundation.provider.openaicompatible.SiliconFlowRerankModelDiscoverer;
 import com.aiplatform.foundation.provider.openaicompatible.OpenAiCompatibleEmbeddingModelFactory;
 import com.aiplatform.foundation.security.egress.OutboundEndpointPolicy;
 import com.aiplatform.foundation.security.secret.SecretResolver;
@@ -55,6 +56,13 @@ public class OpenAiCompatibleProviderAutoConfiguration {
             PlatformProviderCredentialResolver secrets,
             OutboundEndpointPolicy endpointPolicy) {
         return new VolcengineArkPlatformProviderModelDiscoverer(secrets, endpointPolicy);
+    }
+
+    @Bean
+    @ConditionalOnBean(PlatformProviderCredentialResolver.class)
+    PlatformProviderModelDiscoverer siliconFlowRerankModelDiscoverer(
+            PlatformProviderCredentialResolver secrets, OutboundEndpointPolicy endpointPolicy) {
+        return new SiliconFlowRerankModelDiscoverer(secrets, endpointPolicy);
     }
 
     @Bean

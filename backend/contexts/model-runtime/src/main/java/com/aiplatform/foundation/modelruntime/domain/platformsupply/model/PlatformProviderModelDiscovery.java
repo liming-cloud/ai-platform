@@ -39,8 +39,8 @@ public final class PlatformProviderModelDiscovery implements AggregateRoot<Platf
         this.elapsed = requireElapsed(observation.elapsed());
         this.discoveredAt = Objects.requireNonNull(observation.discoveredAt(), "平台模型发现时间不能为空");
         if (succeeded) {
-            if (models.isEmpty() || expiresAt == null || !expiresAt.isAfter(discoveredAt)) {
-                throw new IllegalArgumentException("成功平台模型发现必须有未过期候选");
+            if (expiresAt == null || !expiresAt.isAfter(discoveredAt)) {
+                throw new IllegalArgumentException("成功平台模型发现必须有有效期限，空列表不产生候选");
             }
             this.expiresAt = expiresAt;
         } else if (!models.isEmpty() || expiresAt != null) {

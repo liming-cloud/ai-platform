@@ -348,6 +348,7 @@ export type PlatformModelDiscoveryProfile =
   | "DETERMINISTIC_CATALOG"
   | "OPENAI_MODELS_API"
   | "VOLCENGINE_ARK_CONTROL_PLANE"
+  | "SILICONFLOW_RERANK_MODELS_API"
   | "NONE";
 
 /** 平台连接必须显式冻结权威模型发现协议。 */

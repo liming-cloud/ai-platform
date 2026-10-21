@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderModelCandidateMapper">
+    <sql id="sourceBindings">
+        <bind name="sourceMappingVersion" value="@com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformModelCandidateSource@CURRENT_MAPPING_VERSION"/>
+        <bind name="sourceMappingDigest" value="@com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformModelCandidateSource@CURRENT_MAPPING_DIGEST"/>
+    </sql>
     <!-- 全目录只使用已发布的当前连接修订；没有候选时不拿历史发现补齐。 -->
     <select id="selectDeployablePage" resultType="com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.entity.PlatformDeployableModelRow">
+        <include refid="sourceBindings"/>
         WITH latest AS (
             SELECT DISTINCT ON (platform_provider_connection_id, platform_provider_connection_revision) *
             FROM model_runtime.platform_provider_model_discovery WHERE succeeded = TRUE
@@ -21,13 +26,17 @@
         LEFT JOIN model_runtime.platform_model_candidate_confirmation confirmation ON confirmation.discovery_id = candidate.discovery_id AND confirmation.model_code = candidate.model_code
         WHERE connection.scope = 'PLATFORM' AND connection.status = 'VERIFIED' AND latest.expires_at &gt; #{now}
             AND connection.last_probed_at &lt;= #{now} AND connection.last_probed_at &gt; CAST(#{now} AS TIMESTAMPTZ) - INTERVAL '24 hours'
+            AND (connection.discovery_profile &lt;&gt; 'SILICONFLOW_RERANK_MODELS_API'
+                OR (candidate.source_profile = 'SILICONFLOW_RERANK_MODELS_API'
+                    AND candidate.mapping_version = #{sourceMappingVersion} AND candidate.mapping_digest = #{sourceMappingDigest}))
         ORDER BY connection.display_name, candidate.model_code, candidate.candidate_key
     </select>
 
     <!-- 最新发现根以 PostgreSQL DISTINCT ON 归一；候选窗口和总数由 MyBatis-Plus 生成。 -->
     <sql id="currentCandidates">
+        <include refid="sourceBindings"/>
         WITH current_discovery AS (
-            SELECT DISTINCT ON (discovery.platform_provider_connection_id, discovery.platform_provider_connection_revision) discovery.id, discovery.expires_at, discovery.discovered_at FROM model_runtime.platform_provider_model_discovery discovery
+            SELECT DISTINCT ON (discovery.platform_provider_connection_id, discovery.platform_provider_connection_revision) discovery.id, discovery.expires_at, discovery.discovered_at, connection.discovery_profile FROM model_runtime.platform_provider_model_discovery discovery
             JOIN model_runtime.platform_provider_connection connection ON connection.id = discovery.platform_provider_connection_id
             WHERE connection.id = #{connectionId} AND connection.scope = 'PLATFORM'
               AND connection.version = #{revision} AND connection.status = 'VERIFIED'
@@ -36,12 +45,16 @@
             ORDER BY discovery.platform_provider_connection_id, discovery.platform_provider_connection_revision, discovery.discovered_at DESC, discovery.id DESC
         ), candidate_projection AS (
             SELECT candidate.discovery_id, candidate.model_code, candidate.display_name, candidate.candidate_key,
+                   candidate.source_profile, candidate.list_source, candidate.mapping_version, candidate.mapping_digest,
                    COALESCE(confirmation.model_type, candidate.model_type) AS model_type,
                    CASE WHEN confirmation.discovery_id IS NOT NULL THEN 'CONFIRMED_BY_ADMIN'
                         ELSE candidate.classification END AS classification,
                    COALESCE(array_to_string(confirmation.capabilities, ','), array_to_string(candidate.capabilities, ',')) AS capabilities
             FROM model_runtime.platform_discovered_model candidate
             JOIN current_discovery ON current_discovery.id = candidate.discovery_id AND current_discovery.expires_at &gt; #{now} AND current_discovery.discovered_at &lt;= #{now}
+                AND (current_discovery.discovery_profile &lt;&gt; 'SILICONFLOW_RERANK_MODELS_API'
+                    OR (candidate.source_profile = 'SILICONFLOW_RERANK_MODELS_API'
+                        AND candidate.mapping_version = #{sourceMappingVersion} AND candidate.mapping_digest = #{sourceMappingDigest}))
             LEFT JOIN model_runtime.platform_model_candidate_confirmation confirmation
               ON confirmation.discovery_id = candidate.discovery_id AND confirmation.model_code = candidate.model_code
         )
@@ -50,12 +63,12 @@
         FROM candidate_projection
         WHERE concat_ws(' ', model_code, display_name,
               CASE WHEN classification = 'REQUIRES_ADMIN_CONFIRMATION' THEN '待管理员确认'
-                   WHEN model_type = 'CHAT' THEN '对话模型' WHEN model_type = 'EMBEDDING' THEN '向量模型' ELSE '待确认' END)
+                   WHEN model_type = 'CHAT' THEN '对话模型' WHEN model_type = 'EMBEDDING' THEN '向量模型' WHEN model_type = 'RERANK' THEN '重排序模型' ELSE '待确认' END)
               ILIKE #{q} ESCAPE '\'
     </sql>
     <select id="selectCandidatePage" resultType="com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.entity.PlatformProviderModelCandidateRow">
         <include refid="currentCandidates"/>
-        SELECT model_code, model_type, capabilities, classification, display_name, discovery_id <include refid="candidateFilter"/>
+        SELECT model_code, model_type, capabilities, classification, display_name, discovery_id, source_profile, list_source, mapping_version, mapping_digest <include refid="candidateFilter"/>
         ORDER BY model_code ASC, candidate_key ASC
     </select>
     <select id="countCandidates" resultType="long">
@@ -71,19 +84,19 @@
     </insert>
     <insert id="insertCandidate">
         INSERT INTO model_runtime.platform_discovered_model
-            (discovery_id, model_code, model_type, capabilities, classification, display_name)
-        VALUES (#{discoveryId}, #{modelCode}, #{modelType}, string_to_array(#{capabilities}, ','), #{classification}, #{displayName})
+            (discovery_id, model_code, model_type, capabilities, classification, display_name, source_profile, list_source, mapping_version, mapping_digest)
+        VALUES (#{discoveryId}, #{modelCode}, #{modelType}, string_to_array(#{capabilities}, ','), #{classification}, #{displayName}, #{sourceProfile}, #{listSource}, #{mappingVersion}, #{mappingDigest})
     </insert>
     <!-- 选择值仍为原始编码，页面名称不能改变精确模型匹配、分类及过期边界。 -->
     <select id="selectCurrentCandidate" resultType="com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.entity.PlatformProviderModelCandidateRow">
         <include refid="currentCandidates"/>
-        SELECT model_code, model_type, capabilities, classification, display_name, discovery_id
+        SELECT model_code, model_type, capabilities, classification, display_name, discovery_id, source_profile, list_source, mapping_version, mapping_digest
         FROM candidate_projection WHERE model_code = #{modelCode} AND model_type = #{modelType}
           AND classification &lt;&gt; 'REQUIRES_ADMIN_CONFIRMATION'
     </select>
     <select id="selectDraftCandidate" resultType="com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.entity.PlatformProviderModelCandidateRow">
         <include refid="currentCandidates"/>
-        SELECT model_code, model_type, capabilities, classification, display_name, discovery_id
+        SELECT model_code, model_type, capabilities, classification, display_name, discovery_id, source_profile, list_source, mapping_version, mapping_digest
         FROM candidate_projection WHERE model_code = #{modelCode}
           AND (model_type = #{modelType} OR (classification = 'REQUIRES_ADMIN_CONFIRMATION' AND NOT EXISTS
             (SELECT 1 FROM candidate_projection exact WHERE exact.model_code = candidate_projection.model_code AND exact.model_type = #{modelType})))

@@ -7,13 +7,14 @@ public enum PlatformModelDiscoveryProfile {
     DETERMINISTIC_CATALOG,
     OPENAI_MODELS_API,
     VOLCENGINE_ARK_CONTROL_PLANE,
+    SILICONFLOW_RERANK_MODELS_API,
     NONE;
 
     /** 判断发现协议是否可用于给定供应商连接类型。 */
     public boolean supports(ProviderKind providerKind) {
         return switch (this) {
             case DETERMINISTIC_CATALOG -> providerKind == ProviderKind.DETERMINISTIC;
-            case OPENAI_MODELS_API, VOLCENGINE_ARK_CONTROL_PLANE ->
+            case OPENAI_MODELS_API, VOLCENGINE_ARK_CONTROL_PLANE, SILICONFLOW_RERANK_MODELS_API ->
                     providerKind == ProviderKind.OPENAI_COMPATIBLE;
             case NONE -> true;
         };

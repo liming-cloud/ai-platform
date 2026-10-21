@@ -83,6 +83,51 @@ class PostgresPlatformProviderModelDiscoveryStoreTest {
     }
 
     @Test
+    void 官方重排来源跨持久化与草稿选择保持精确且轮换后不能再使用() {
+        var id = new PlatformProviderConnectionId(IDENTIFIERS.incrementAndGet());
+        var at = Instant.parse("2026-10-21T00:00:00Z");
+        var connection = connections.create(new PlatformProviderConnectionCreation(PlatformProviderConnection.create(
+                id, ProviderKind.OPENAI_COMPATIBLE,
+                com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDiscoveryProfile.SILICONFLOW_RERANK_MODELS_API,
+                new com.aiplatform.foundation.modelruntime.domain.platformsupply.model.preset.PlatformProviderPresetSelection(
+                        "SILICONFLOW", "2026-10-21", "RERANK", null), "合成重排来源",
+                URI.create("https://api.siliconflow.cn/v1/rerank"), "cn", AuthenticationType.API_KEY,
+                new CredentialReference("secret://platform-provider-connection/" + id.value()), at),
+                "rerank-source-" + id.value(), "f".repeat(64))).connection();
+        var source = new com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformModelCandidateSource(
+                "SILICONFLOW_RERANK_MODELS_API", "https://api.siliconflow.cn/v1/models?sub_type=reranker",
+                "siliconflow-rerank-2026-10-21", com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformModelCandidateSource.CURRENT_MAPPING_DIGEST);
+        var candidate = new PlatformDiscoveredModelCandidate("BAAI/bge-reranker-v2-m3", ModelType.RERANK,
+                Set.of(ModelCapability.RERANK), com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformModelCandidateClassification.CONFIRMED_BY_CONTROLLED_MAPPING,
+                null, source);
+        var verified = connection.recordSuccessfulProbe("SILICONFLOW_RERANK_DISCOVERY_OK", at);
+        var discovery = PlatformProviderModelDiscovery.capture(new PlatformProviderModelDiscoveryId(IDENTIFIERS.incrementAndGet()),
+                id, verified.version(), new PlatformProviderModelDiscoveryObservation(true, Set.of(candidate),
+                        "SILICONFLOW_RERANK_DISCOVERY_OK", Duration.ZERO, at), at.plusSeconds(3600));
+        discoveries.record(verified, connection.version(), discovery);
+        var snapshot = discoveryLookup.findCurrentSnapshot(id, verified.version(), candidate.modelCode(), ModelType.RERANK, at.plusSeconds(1)).orElseThrow();
+        assertEquals(discovery.id().value(), snapshot.discoveryId());
+        assertEquals(source, snapshot.candidate().source());
+        assertEquals(1, discoveryLookup.findCurrentCandidates(id, verified.version(), new PageQuery(1, 20), at.plusSeconds(1), "重排").totalElements());
+        assertEquals(source, discoveryLookup.findCurrentCandidates(id, verified.version(), new PageQuery(1, 20), at.plusSeconds(1), "").items().getFirst().source());
+        assertThrows(org.springframework.dao.DataIntegrityViolationException.class, () -> jdbc.update(
+                "UPDATE model_runtime.platform_discovered_model SET mapping_digest = NULL WHERE discovery_id = ?", discovery.id().value()));
+        jdbc.update("UPDATE model_runtime.platform_discovered_model SET mapping_version = 'siliconflow-rerank-2026-10-20' WHERE discovery_id = ?", discovery.id().value());
+        assertTrue(discoveryLookup.findCurrentSnapshot(id, verified.version(), candidate.modelCode(), ModelType.RERANK, at.plusSeconds(2)).isEmpty(), "旧映射不得继续建草稿");
+        assertEquals(0, discoveryLookup.findCurrentCandidates(id, verified.version(), new PageQuery(1, 20), at.plusSeconds(2), "").totalElements());
+        assertEquals("siliconflow-rerank-2026-10-20", jdbc.queryForObject("SELECT mapping_version FROM model_runtime.platform_discovered_model WHERE discovery_id = ?", String.class, discovery.id().value()));
+        assertTrue(connections.update(verified.disable(), verified.version()));
+        assertTrue(discoveryLookup.findCurrentSnapshot(id, verified.version(), candidate.modelCode(), ModelType.RERANK, at.plusSeconds(2)).isEmpty());
+        assertEquals(source.mappingDigest(), jdbc.queryForObject("SELECT mapping_digest FROM model_runtime.platform_discovered_model WHERE discovery_id = ?", String.class, discovery.id().value()));
+    }
+
+    @Test
+    void 历史候选来源保持缺失且新来源列采用成组完整约束() {
+        assertEquals(4, jdbc.queryForObject("SELECT count(*) FROM information_schema.columns WHERE table_schema='model_runtime' AND table_name='platform_discovered_model' AND column_name IN ('source_profile', 'list_source', 'mapping_version', 'mapping_digest')", Integer.class));
+        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM model_runtime.platform_discovered_model WHERE source_profile IS NOT NULL", Integer.class));
+    }
+
+    @Test
     void 平台模型发现和候选只写入平台专用表() {
         var connection = connections.create(new PlatformProviderConnectionCreation(
                 PlatformProviderConnection.create(
