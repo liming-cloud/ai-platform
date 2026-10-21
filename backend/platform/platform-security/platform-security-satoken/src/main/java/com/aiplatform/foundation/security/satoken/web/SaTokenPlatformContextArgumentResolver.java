@@ -40,8 +40,11 @@ public final class SaTokenPlatformContextArgumentResolver
             ModelAndViewContainer container,
             NativeWebRequest request,
             WebDataBinderFactory binderFactory) {
-        var session = sessions.resolve(BrowserSessionTokenResolver.require(
-                request, BrowserSessionCookieNames.PLATFORM_SESSION));
+        var token = BrowserSessionTokenResolver.require(request, BrowserSessionCookieNames.PLATFORM_SESSION);
+        var session = sessions.resolve(token);
+        request.setAttribute(com.aiplatform.foundation.security.session.PlatformSessionContinuity.REQUEST_ATTRIBUTE,
+                new com.aiplatform.foundation.security.session.PlatformSessionContinuity(sessions, token, session),
+                org.springframework.web.context.request.RequestAttributes.SCOPE_REQUEST);
         return new PlatformRequestContext(
                 session.subjectId(),
                 session.credentialType(),

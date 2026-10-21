@@ -21,8 +21,8 @@ import java.util.function.BooleanSupplier;
 import java.util.function.LongSupplier;
 
 /**
- * S2 单个精确目标的离线编排内核；包内可见，不注册 Bean、不访问凭据或仓储。
- * 生产协议和真实提交合同闭合前，不能由此生成 VERIFIED、发布或授权事实。
+ * S2 单个精确目标的预算与安全样本编排内核；不访问凭据或仓储。
+ * 通过只表示三样本合同满足，最终验证事实仍由调用方的短事务独立复核提交。
  */
 final class PlatformCapabilityVerificationSession {
     static final Duration TIME_LIMIT = Duration.ofSeconds(30);
@@ -30,11 +30,19 @@ final class PlatformCapabilityVerificationSession {
     private static final SecureRandom NONCES = new SecureRandom();
     private final Clock clock;
     private final LongSupplier nanoTime;
+    private final Duration timeLimit;
     private final AtomicBoolean used = new AtomicBoolean();
 
     PlatformCapabilityVerificationSession(Clock clock, LongSupplier nanoTime) {
+        this(clock, nanoTime, TIME_LIMIT);
+    }
+
+    PlatformCapabilityVerificationSession(Clock clock, LongSupplier nanoTime, Duration timeLimit) {
         this.clock = Objects.requireNonNull(clock, "报价时钟不能为空");
         this.nanoTime = Objects.requireNonNull(nanoTime, "单调时钟不能为空");
+        if (timeLimit == null || timeLimit.isNegative() || timeLimit.isZero() || timeLimit.compareTo(TIME_LIMIT) > 0)
+            throw new IllegalArgumentException("验证期限不得超过三十秒");
+        this.timeLimit = timeLimit;
     }
 
     Summary run(Target target, Tariff tariff, BigDecimal feeLimit, BooleanSupplier cancelled, SampleCall call) {
@@ -73,7 +81,7 @@ final class PlatformCapabilityVerificationSession {
                 if (timeout <= 0)
                     return summary(Outcome.DEADLINE_EXCEEDED, targetFingerprint, plan, reserved, attempted, passed);
                 var request = new Request(PlatformCapabilitySafetySuite.digest(plan, sample.fingerprint()), target,
-                        sample, Duration.ofNanos(timeout), target.maxOutputTokens(), tariff.inputUnitsUpperBound(), tariff.inputTokensUpperBound());
+                        sample, Duration.ofNanos(timeout), target.maxOutputTokens(), tariff.inputUnitsUpperBound(), tariff.inputTokensUpperBound(), plan, reserved);
                 attempted++;
                 inFlight = executor.submit(() -> {
                     // 调度等待也计入总预算；实际调用前再检查，不能沿用排队前的剩余时间。
@@ -81,7 +89,7 @@ final class PlatformCapabilityVerificationSession {
                     var dispatchTimeout = remaining(startedAt);
                     if (dispatchTimeout <= 0) return null;
                     return call.execute(new Request(request.binding(), target, sample,
-                            Duration.ofNanos(dispatchTimeout), request.maxOutputTokens(), request.inputUnitsUpperBound(), request.inputTokensUpperBound()));
+                            Duration.ofNanos(dispatchTimeout), request.maxOutputTokens(), request.inputUnitsUpperBound(), request.inputTokensUpperBound(), request.planFingerprint(), request.reservedFee()));
                 });
                 PlatformCapabilitySafetySuite.Reply reply;
                 while (true) {
@@ -127,7 +135,7 @@ final class PlatformCapabilityVerificationSession {
 
     private long remaining(long startedAt) {
         var elapsed = nanoTime.getAsLong() - startedAt;
-        return elapsed < 0 || elapsed >= TIME_LIMIT.toNanos() ? 0 : TIME_LIMIT.toNanos() - elapsed;
+        return elapsed < 0 || elapsed >= timeLimit.toNanos() ? 0 : timeLimit.toNanos() - elapsed;
     }
 
     private boolean pricingAvailable(Target target, Tariff tariff) {
@@ -207,9 +215,9 @@ final class PlatformCapabilityVerificationSession {
     }
 
     record Request(String binding, Target target, PlatformCapabilitySafetySuite.Sample sample,
-                   Duration timeout, int maxOutputTokens, long inputUnitsUpperBound, long inputTokensUpperBound) {}
+                   Duration timeout, int maxOutputTokens, long inputUnitsUpperBound, long inputTokensUpperBound, String planFingerprint, BigDecimal reservedFee) {}
 
-    /** 当前仅供离线合同调用方提供可控返回；不注册厂商适配或授权外呼。 */
+    /** 调用方先持久化整轮预留，再以剩余期限执行一次样本；该回调不自行重试。 */
     @FunctionalInterface
     interface SampleCall { PlatformCapabilitySafetySuite.Reply execute(Request request) throws Exception; }
 

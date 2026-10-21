@@ -1182,6 +1182,66 @@
       "statementId": "lockActive",
       "category": "ROW_LOCK",
       "reason": "WP-0019 S2 / ADR-0100：组织拥有的活动事实共享锁在声明事务内抵御停用竞争，不暴露内部模型或授予权限。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/PlatformCapabilityCredentialMapper.xml",
+      "statementId": "resolveForRevision",
+      "category": "SECURITY_PROJECTION",
+      "reason": "ADR-0100：同一数据库快照绑定当前已发布修订及推理密文，不读取发现用途凭据或其他修订。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/PlatformCapabilityVerificationMapper.xml",
+      "statementId": "lockDeployment",
+      "category": "ROW_LOCK",
+      "reason": "ADR-0100：外呼前后短事务共用部署根锁，版本与声明必须仍为精确草稿。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/PlatformCapabilityVerificationMapper.xml",
+      "statementId": "lockReservation",
+      "category": "ROW_LOCK",
+      "reason": "ADR-0100：精确目标、操作者、报价和计划全部匹配才锁定活动预留，拒绝跨轮回放。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/PlatformCapabilityVerificationMapper.xml",
+      "statementId": "reserve",
+      "category": "POSTGRES_TYPE",
+      "reason": "ADR-0100：首个外呼前冻结三样本摘要数组与整轮费用上界，活动唯一键拒绝并发。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/PlatformCapabilityVerificationMapper.xml",
+      "statementId": "expire",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "ADR-0100：新请求只退休已到期预留的活动状态，保留未知用量金额，不重发旧请求。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/PlatformCapabilityVerificationMapper.xml",
+      "statementId": "insertVerification",
+      "category": "POSTGRES_TYPE",
+      "reason": "ADR-0100：从旧 Java SQL 迁出的能力数组验证事实，与成功 CAS、回执及审计同事务。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/PlatformCapabilityVerificationMapper.xml",
+      "statementId": "updateVerified",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "ADR-0100：只按精确 DRAFT 修订更新成功状态，CAS 失败回滚验证与审计。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/PlatformCapabilityVerificationMapper.xml",
+      "statementId": "finish",
+      "category": "POSTGRES_TYPE",
+      "reason": "ADR-0100：保存有序通过样本数组及稳定终态，不保存正文、向量或厂商原始异常。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/PlatformCapabilityVerificationMapper.xml",
+      "statementId": "audit",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "ADR-0100：最后插入独立安全审计，失败回滚验证、CAS 和预留终态，保留外呼前预留。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/PlatformRoleBindingMapper.xml",
+      "statementId": "lockModelWriteSubject",
+      "category": "ROW_LOCK",
+      "reason": "ADR-0100／0082：组织所有者共用主体根锁复核当前平台模型管理权限，不读取密码摘要。"
     }
   ]
 }

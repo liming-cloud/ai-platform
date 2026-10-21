@@ -46,7 +46,6 @@ import com.aiplatform.foundation.modelruntime.application.platformsupply.port.ou
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoveryStore;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoveryLookup;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelCandidateConfirmationStore;
-import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformModelDeploymentProbe;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformModelDeploymentVerificationStore;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderModelDiscoveryService;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformProviderModelCandidateReadService;
@@ -190,9 +189,13 @@ public class ModelRuntimeCoreAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    @ConditionalOnBean(PlatformModelDeploymentVerificationStore.class)
     PlatformModelProbeProviderService platformModelProbeProviderService(
-            List<PlatformModelDeploymentProbe> probes) {
-        return new PlatformModelProbeProviderService(probes, Clock.systemUTC());
+            List<com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.verification.PlatformCapabilitySampleExecutor> samples,
+            List<com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.verification.PlatformReranker> rerankers,
+            PlatformModelDeploymentVerificationStore store, EntityIdGenerator identifiers, ModelCatalogProperties properties) {
+        return new PlatformModelProbeProviderService(samples, rerankers, properties.getPlatformVerificationPrices(), store,
+                Clock.systemUTC(), identifiers, properties.getCapabilityVerificationValidity());
     }
 
     @Bean
@@ -209,12 +212,11 @@ public class ModelRuntimeCoreAutoConfiguration {
             PlatformProviderConnectionPublicationRepository publications,
             PlatformProviderModelDiscoveryLookup discoveries,
             PlatformModelProbeProviderService probes,
-            PlatformModelDeploymentVerificationStore verificationStore,
             EntityIdGenerator identifiers,
             ModelCatalogProperties properties) {
         return new PlatformModelDeploymentService(
-                deployments, connections, publications, discoveries, probes, verificationStore, Clock.systemUTC(), identifiers,
-                properties.getCapabilityVerificationValidity(), properties.isPlatformDeploymentWritesAvailable());
+                deployments, connections, publications, discoveries, probes, Clock.systemUTC(), identifiers,
+                properties.isPlatformDeploymentWritesAvailable());
     }
 
     @Bean @ConditionalOnMissingBean

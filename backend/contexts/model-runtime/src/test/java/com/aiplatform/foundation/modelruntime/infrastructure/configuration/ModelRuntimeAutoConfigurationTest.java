@@ -79,6 +79,27 @@ import org.springframework.jdbc.core.JdbcTemplate;
 class ModelRuntimeAutoConfigurationTest {
 
     @Test
+    void 非秘密账户报价能由实际启动配置绑定且缺省为空() {
+        assertThat(new ModelCatalogProperties().getPlatformVerificationPrices()).isEmpty();
+        var environment = new org.springframework.mock.env.MockEnvironment();
+        String[][] values = {
+                {"connection-id", "11"}, {"connection-revision", "2"}, {"model-code", "synthetic-model"},
+                {"model-type", "EMBEDDING"}, {"residency", "合成区域"}, {"evidence-digest", "a".repeat(64)},
+                {"observed-at", "2026-10-21T01:00:00Z"}, {"expires-at", "2026-10-21T02:00:00Z"},
+                {"currency", "CNY"}, {"billing-unit", "PER_MILLION_TOKENS"}, {"input-price", "1"}, {"output-price", "0"},
+                {"input-units-upper-bound", "1024"}, {"input-tokens-upper-bound", "1024"}
+        };
+        for (var value : values) environment.withProperty("foundation.model-catalog.platform-verification-prices[0]." + value[0], value[1]);
+        var properties = org.springframework.boot.context.properties.bind.Binder.get(environment)
+                .bind("foundation.model-catalog", org.springframework.boot.context.properties.bind.Bindable.of(ModelCatalogProperties.class)).get();
+        assertThat(properties.getPlatformVerificationPrices()).hasSize(1);
+        var price = properties.getPlatformVerificationPrices().getFirst();
+        assertThat(price.connectionRevision()).isEqualTo(2);
+        assertThat(price.modelType()).isEqualTo(com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType.EMBEDDING);
+        assertThat(price.inputTokensUpperBound()).isEqualTo(1024);
+    }
+
+    @Test
     void 核心能力仅在显式启用且依赖完整时注册() {
         var runner = new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(
@@ -381,6 +402,10 @@ class ModelRuntimeAutoConfigurationTest {
                         PlatformTransactionManager.class,
                         () -> mock(PlatformTransactionManager.class))
                 .withBean(JdbcTemplate.class, () -> mock(JdbcTemplate.class))
+                .withBean(com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformCapabilityVerificationMapper.class,
+                        () -> mock(com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformCapabilityVerificationMapper.class))
+                .withBean(com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformCapabilityCredentialMapper.class,
+                        () -> mock(com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformCapabilityCredentialMapper.class))
                 .withBean(
                         SqlSessionFactory.class,
                         () -> mock(SqlSessionFactory.class))

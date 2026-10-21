@@ -23,7 +23,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
  * <p>它不实现通用 `SecretResolver`，防止租户运行时在未经平台供应链适配的情况下解析平台凭据。</p>
  */
 public final class PostgresEncryptedPlatformProviderConnectionCredentialStore
-        implements PlatformProviderConnectionCredentialWriter, PlatformProviderCredentialResolver {
+        implements PlatformProviderConnectionCredentialWriter, PlatformProviderCredentialResolver,
+        com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.verification.PlatformCapabilityCredentialResolver {
 
     private static final String INFERENCE_STORE = "platform-provider-connection";
     private static final String DISCOVERY_ACCESS_KEY_STORE = "platform-provider-discovery-access-key";
@@ -33,22 +34,26 @@ public final class PostgresEncryptedPlatformProviderConnectionCredentialStore
     private final SecretEncryptionKeyProvider keyProvider;
     private final AesGcmSecretCipher cipher;
     private final Clock clock;
+    private final com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformCapabilityCredentialMapper capabilityCredentials;
 
     public PostgresEncryptedPlatformProviderConnectionCredentialStore(
             JdbcTemplate jdbc,
-            SecretEncryptionKeyProvider keyProvider) {
-        this(jdbc, keyProvider, new AesGcmSecretCipher(), Clock.systemUTC());
+            SecretEncryptionKeyProvider keyProvider,
+            com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformCapabilityCredentialMapper capabilityCredentials) {
+        this(jdbc, keyProvider, new AesGcmSecretCipher(), Clock.systemUTC(), capabilityCredentials);
     }
 
     PostgresEncryptedPlatformProviderConnectionCredentialStore(
             JdbcTemplate jdbc,
             SecretEncryptionKeyProvider keyProvider,
             AesGcmSecretCipher cipher,
-            Clock clock) {
+            Clock clock,
+            com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformCapabilityCredentialMapper capabilityCredentials) {
         this.jdbc = Objects.requireNonNull(jdbc, "数据库访问器不能为空");
         this.keyProvider = Objects.requireNonNull(keyProvider, "主密钥提供者不能为空");
         this.cipher = Objects.requireNonNull(cipher, "凭据加密器不能为空");
         this.clock = Objects.requireNonNull(clock, "时钟不能为空");
+        this.capabilityCredentials = Objects.requireNonNull(capabilityCredentials, "精确推理凭据映射器不能为空");
     }
 
     @Override
@@ -96,6 +101,17 @@ public final class PostgresEncryptedPlatformProviderConnectionCredentialStore
         if (encrypted == null) {
             throw new IllegalStateException("平台供应商连接未设置指定用途的凭据");
         }
+        return cipher.decrypt(encrypted, keyProvider);
+    }
+
+    /** 精确修订读取独立于 S1 当前用途解析；不会将新 Key 或发现 AK/SK 交给旧目标。 */
+    @Override
+    public SecretValue resolve(String reference, long expectedConnectionRevision) {
+        var selected = slot(new CredentialReference(reference));
+        if (expectedConnectionRevision < 0 || !"INFERENCE_API_KEY".equals(selected.purpose()))
+            throw new IllegalArgumentException("能力验证只接受精确修订的推理凭据");
+        var encrypted = capabilityCredentials.resolveForRevision(selected.connectionId(), expectedConnectionRevision, clock.instant());
+        if (encrypted == null) throw new IllegalStateException("精确已发布连接修订的推理凭据不可用");
         return cipher.decrypt(encrypted, keyProvider);
     }
 

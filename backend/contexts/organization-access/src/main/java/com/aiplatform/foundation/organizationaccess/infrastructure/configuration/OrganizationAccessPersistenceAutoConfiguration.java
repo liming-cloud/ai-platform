@@ -114,6 +114,13 @@ import org.springframework.jdbc.core.simple.JdbcClient;
     TenantLoginAttemptMapper.class
 })
 public class OrganizationAccessPersistenceAutoConfiguration {
+    /** 模型短事务消费当前平台权限事实，所有者锁定组织主体根且不暴露内部模型。 */
+    @Bean
+    @ConditionalOnMissingBean
+    com.aiplatform.foundation.security.identity.PlatformModelWriteFacts platformModelWriteFacts(
+            PlatformRoleBindingMapper mapper) {
+        return new com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.repository.PostgresPlatformModelWriteFacts(mapper);
+    }
 
     /** 活动事实属于只读持久化装配；查询进程关闭组织写用例时仍能安全装配模型读取。 */
     @Bean

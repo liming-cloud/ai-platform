@@ -1,5 +1,7 @@
 package com.aiplatform.foundation.organizationaccess.infrastructure.persistence.authorization.repository;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -60,6 +62,9 @@ class PostgresPlatformRoleBindingStoreTest {
     @Autowired
     private JdbcTemplate jdbc;
 
+    @Autowired private PlatformRoleBindingMapper modelWriteMapper;
+    @Autowired private org.springframework.transaction.PlatformTransactionManager transactionManager;
+
     @DynamicPropertySource
     static void databaseProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
@@ -82,6 +87,27 @@ class PostgresPlatformRoleBindingStoreTest {
                         + "(subject_id, login_name, password_hash, status, version) "
                         + "VALUES (?, 'platform-account', 'platform-hash', 'ACTIVE', 0)",
                 SUBJECT_ID);
+    }
+
+    @Test
+    void 模型写入复核由当前角色及修订派生且角色撤销立即拒绝() {
+        jdbc.update("INSERT INTO organization_access.platform_subject_authorization (subject_id, permission_version) VALUES (?, 3)", SUBJECT_ID);
+        jdbc.update("INSERT INTO organization_access.platform_role_binding (binding_id, subject_id, role_code, status, version, created_at) VALUES (?, ?, 'PLATFORM_ADMINISTRATOR', 'ACTIVE', 0, CURRENT_TIMESTAMP)", SUBJECT_ID + 1, SUBJECT_ID);
+        var facts = new PostgresPlatformModelWriteFacts(modelWriteMapper);
+        var transaction = new org.springframework.transaction.support.TransactionTemplate(transactionManager);
+        var context = new com.aiplatform.foundation.security.identity.PlatformRequestContext(
+                new com.aiplatform.foundation.security.identity.SubjectId(SUBJECT_ID), com.aiplatform.foundation.security.identity.CredentialType.PERSON,
+                com.aiplatform.foundation.security.identity.AccessChannel.CONSOLE, 3,
+                java.util.Set.of(com.aiplatform.foundation.security.identity.PlatformPermissions.SESSION_ACCESS,
+                    com.aiplatform.foundation.security.identity.PlatformPermissions.MODEL_PLATFORM_WRITE), "synthetic-model-current-role");
+        transaction.executeWithoutResult(status -> facts.requireCurrent(context));
+        jdbc.update("UPDATE organization_access.platform_subject_authorization SET permission_version = 4 WHERE subject_id = ?", SUBJECT_ID);
+        assertThrows(com.aiplatform.foundation.security.session.InvalidAuthenticatedSessionException.class,
+                () -> transaction.executeWithoutResult(status -> facts.requireCurrent(context)));
+        jdbc.update("UPDATE organization_access.platform_subject_authorization SET permission_version = 3 WHERE subject_id = ?", SUBJECT_ID);
+        jdbc.update("UPDATE organization_access.platform_role_binding SET status = 'REVOKED', revoked_at = CURRENT_TIMESTAMP WHERE subject_id = ?", SUBJECT_ID);
+        assertThrows(com.aiplatform.foundation.security.session.InvalidAuthenticatedSessionException.class,
+                () -> transaction.executeWithoutResult(status -> facts.requireCurrent(context)));
     }
 
     @Test

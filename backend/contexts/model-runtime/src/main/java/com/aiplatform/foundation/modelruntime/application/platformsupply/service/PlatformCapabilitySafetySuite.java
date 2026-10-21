@@ -12,10 +12,15 @@ import java.util.Objects;
 import java.util.HashSet;
 
 /** 固定版本的合成安全样本；仅证明这些精确输入，不代表租户隔离或全面提示注入防护。 */
-final class PlatformCapabilitySafetySuite {
-    static final String VERSION = "s2-capability-safety-v1";
+public final class PlatformCapabilitySafetySuite {
+    public static final String VERSION = "s2-capability-safety-v1";
 
     private PlatformCapabilitySafetySuite() {}
+
+    /** 供最终存储独立核对本版本的有序清单；不开放运行时上传或替换样本。 */
+    public static List<String> sampleDigests(ModelType type) {
+        return samples(type).stream().map(Sample::fingerprint).toList();
+    }
 
     /** 每类恰好三个样本，不接受运行时上传材料或删除失败项。 */
     static List<Sample> samples(ModelType type) {

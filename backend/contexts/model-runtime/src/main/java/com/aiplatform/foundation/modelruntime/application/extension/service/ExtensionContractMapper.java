@@ -44,15 +44,6 @@ public final class ExtensionContractMapper {
                 request.credentialReference().value(), request.modelCode(), request.timeout());
     }
 
-    /** 将平台模型探测请求转换为供应商扩展请求。 */
-    public static com.aiplatform.foundation.modelruntime.application.extension.facade.request.PlatformModelDeploymentProbeRequest platformModelProbe(
-            com.aiplatform.foundation.modelruntime.application.platformsupply.dto.PlatformModelDeploymentProbeRequest request) {
-        return new com.aiplatform.foundation.modelruntime.application.extension.facade.request.PlatformModelDeploymentProbeRequest(
-                ProviderKind.valueOf(request.providerKind().name()), request.endpoint(),
-                request.credentialReference().value(), request.modelCode(),
-                capabilities(request.requestedCapabilities()), request.timeout());
-    }
-
     /** 将租户模型发现请求转换为供应商扩展请求。 */
     public static com.aiplatform.foundation.modelruntime.application.extension.facade.request.ProviderModelDiscoveryRequest discovery(
             com.aiplatform.foundation.modelruntime.application.provider.dto.ProviderModelDiscoveryRequest request) {

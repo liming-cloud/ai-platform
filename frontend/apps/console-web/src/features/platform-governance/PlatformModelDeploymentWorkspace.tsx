@@ -105,7 +105,11 @@ function PlatformDeploymentPage({ client, route, sessionRevision, onRouteChange 
     const token = owner.current;
     try {
       if (deployment.status === "VERIFIED") await client.publishPlatformModelDeployment(deployment.id, deployment.version);
-      else await client.probePlatformModelDeployment(deployment.id, deployment.version, 30_000);
+      else {
+        const observation = await client.probePlatformModelDeployment(deployment.id, deployment.version, 30_000);
+        if (token !== owner.current) return;
+        if (!observation.verified) { setFeedback(verificationFailure(observation.resultCode)); return; }
+      }
       if (token === owner.current) await load();
     } catch (error) {
       if (token === owner.current) setFeedback(error instanceof ApiRequestError ? error.message : "操作未完成，请重新载入后重试。");
@@ -151,6 +155,20 @@ function PlatformDeploymentPage({ client, route, sessionRevision, onRouteChange 
       {creating ? <PlatformModelDeploymentForm client={client} onSavingChange={setCreatingBusy} onClose={() => setCreating(false)} onCreated={id => { setCreating(false); onRouteChange({ navigationId: "platform-model-supply", task: "deployment-detail", deploymentId: id, directoryPage: directory.deploymentPage, pageSize: directory.pageSize }); }} /> : null}
     </DialogSurface></Dialog>
   </div>;
+}
+
+/** HTTP 成功不等于验证通过；只显示稳定分类，不回显供应商正文或未知错误字段。 */
+function verificationFailure(code: string): string {
+  switch (code) {
+    case "S2_PRICING_UNAVAILABLE": return "费用或用量依据不可用，验证未通过。请核实后再试。";
+    case "S2_BUDGET_EXCEEDED": return "本次费用预留不足，未发起验证。";
+    case "S2_PROTOCOL_UNAVAILABLE": return "当前来源暂不支持所选能力验证，请核对模型连接。";
+    case "S2_USAGE_EXCEEDED": return "用量缺失或超过本次上限，验证未通过。";
+    case "S2_INVALID_RESPONSE": return "验证结果未满足所选能力与安全样本要求。";
+    case "S2_DEADLINE_EXCEEDED": return "验证已超时，未计为通过。请重新载入确认状态。";
+    case "S2_CANCELLED": return "验证已终止，未计为通过。请重新载入确认状态。";
+    default: return "能力验证未通过，请核对模型连接后重试。";
+  }
 }
 function Fact({ label, value }: { label: string; value: string }) { return <div><dt>{label}</dt><dd>{value}</dd></div>; }
 function statusLabel(status: PlatformModelDeploymentSummary["status"]): string { return ({ DRAFT: "草稿", VERIFIED: "验证通过", PUBLISHED: "已发布", DISABLED: "已停用" })[status]; }

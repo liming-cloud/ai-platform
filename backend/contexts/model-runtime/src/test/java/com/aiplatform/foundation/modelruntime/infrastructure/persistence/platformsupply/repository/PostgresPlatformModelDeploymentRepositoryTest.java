@@ -47,6 +47,8 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @SpringBootTest(classes = PostgresPlatformModelDeploymentRepositoryTest.TestApplication.class)
 @Testcontainers
 class PostgresPlatformModelDeploymentRepositoryTest {
+    private static final java.util.concurrent.atomic.AtomicBoolean ACTOR_CURRENT = new java.util.concurrent.atomic.AtomicBoolean(true);
+    private static final java.util.concurrent.atomic.AtomicReference<Instant> VERIFICATION_NOW = new java.util.concurrent.atomic.AtomicReference<>();
     private static final AtomicLong IDENTIFIERS = new AtomicLong(330000000000000100L);
     private static final Instant CREATED_AT = Instant.parse("2026-08-13T04:30:00Z");
     @Container private static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("pgvector/pgvector:0.8.5-pg18-trixie")
@@ -66,7 +68,9 @@ class PostgresPlatformModelDeploymentRepositoryTest {
     }
 
     @BeforeEach void clearFacts() {
-        ACTIVITY_FACTS_AVAILABLE.set(true);
+        ACTIVITY_FACTS_AVAILABLE.set(true); ACTOR_CURRENT.set(true); VERIFICATION_NOW.set(CREATED_AT.plusSeconds(3));
+        jdbc.update("DELETE FROM model_runtime.platform_model_deployment_verification_audit");
+        jdbc.update("DELETE FROM model_runtime.platform_capability_verification_reservation");
         jdbc.update("UPDATE model_runtime.platform_model_deployment SET last_verification_id = NULL, verification_expires_at = NULL, status = 'DRAFT'");
         jdbc.update("DELETE FROM model_runtime.platform_model_capability_verification");
         jdbc.update("DELETE FROM model_runtime.platform_model_deployment_request");
@@ -141,10 +145,12 @@ class PostgresPlatformModelDeploymentRepositoryTest {
         var created = deployments.create(creation("platform-deployment-request-04", "e".repeat(64), "验证模型")).deployment();
         var result = PlatformModelDeploymentVerification.verify(created,
                 new PlatformModelCapabilityVerificationId(IDENTIFIERS.incrementAndGet()),
-                new ModelCapabilityObservation(true, Set.of(ModelCapability.EMBEDDING), "DETERMINISTIC_EMBEDDING_OK",
+                new ModelCapabilityObservation(true, Set.of(ModelCapability.EMBEDDING), "S2_PASSED",
                         Duration.ZERO, CREATED_AT.plusSeconds(1)), CREATED_AT.plusSeconds(3600));
 
-        verificationStore.commit(result, created.version());
+        var reservation = reservation(created);
+        verificationStore.reserve(reservation, () -> true);
+        verificationStore.commit(reservation, result, "PASSED", 3, reservation.expectedSampleDigests(), () -> true);
 
         assertEquals("VERIFIED", jdbc.queryForObject("SELECT status FROM model_runtime.platform_model_deployment WHERE id = ?",
                 String.class, created.id().value()));
@@ -154,9 +160,9 @@ class PostgresPlatformModelDeploymentRepositoryTest {
                 Long.class, created.id().value()));
         var conflicting = PlatformModelDeploymentVerification.verify(created,
                 new PlatformModelCapabilityVerificationId(IDENTIFIERS.incrementAndGet()),
-                new ModelCapabilityObservation(true, Set.of(ModelCapability.EMBEDDING), "DETERMINISTIC_EMBEDDING_OK",
+                new ModelCapabilityObservation(true, Set.of(ModelCapability.EMBEDDING), "S2_PASSED",
                         Duration.ZERO, CREATED_AT.plusSeconds(2)), CREATED_AT.plusSeconds(3600));
-        assertThrows(IllegalStateException.class, () -> verificationStore.commit(conflicting, created.version()));
+        assertThrows(IllegalStateException.class, () -> verificationStore.commit(reservation, conflicting, "PASSED", 3, reservation.expectedSampleDigests(), () -> true));
         assertEquals(1L, jdbc.queryForObject("SELECT COUNT(*) FROM model_runtime.platform_model_capability_verification WHERE platform_model_deployment_id = ?",
                 Long.class, created.id().value()));
     }
@@ -236,6 +242,120 @@ class PostgresPlatformModelDeploymentRepositoryTest {
                         101L, CREATED_AT)), idempotencyKey, fingerprint);
     }
 
+    @Test void 同一部署只能存在一个活动预留且重复请求不会扩大预算() {
+        var d = deployments.create(creation("reservation-unique-01", "d".repeat(64), "预留互斥模型")).deployment();
+        var first = reservation(d); verificationStore.reserve(first, () -> true);
+        var second = reservation(d);
+        assertThrows(org.springframework.dao.DataIntegrityViolationException.class, () -> verificationStore.reserve(second, () -> true));
+        assertEquals(1L, jdbc.queryForObject("SELECT count(*) FROM model_runtime.platform_capability_verification_reservation", Long.class));
+        assertEquals(0L, verificationCount());
+    }
+
+    @Test void 来源轮换后迟到成功不得提交且未知用量不退还预留() {
+        var d = deployments.create(creation("reservation-rotation-01", "d".repeat(64), "轮换拒绝模型")).deployment();
+        var r = reservation(d); verificationStore.reserve(r, () -> true);
+        jdbc.update("UPDATE model_runtime.platform_provider_connection SET version = 2 WHERE id = ?", connectionId.value());
+        assertThrows(IllegalStateException.class, () -> verificationStore.commit(r, success(d, r), "PASSED", 3, r.expectedSampleDigests(), () -> true));
+        assertEquals(0L, verificationCount()); assertEquals("DRAFT", status(d));
+        assertEquals(0, new java.math.BigDecimal("0.01").compareTo(jdbc.queryForObject("SELECT reserved_fee FROM model_runtime.platform_capability_verification_reservation WHERE id = ?", java.math.BigDecimal.class, r.id())));
+    }
+
+    @Test void 撤销权限与退出会话都不能提交已收到的成功结果() {
+        for (boolean revoke : java.util.List.of(true, false)) {
+            var d = deployments.create(creation("reservation-session-" + revoke, "d".repeat(64), "会话拒绝模型" + revoke)).deployment();
+            var r = reservation(d); verificationStore.reserve(r, () -> true);
+            ACTOR_CURRENT.set(!revoke);
+            assertThrows(com.aiplatform.foundation.security.session.InvalidAuthenticatedSessionException.class,
+                    () -> verificationStore.commit(r, success(d, r), "PASSED", 3, r.expectedSampleDigests(), () -> revoke));
+            ACTOR_CURRENT.set(true); assertEquals(0L, verificationCount()); assertEquals("DRAFT", status(d));
+        }
+    }
+
+    @Test void 缺样本或超时的成功回执都不能提升状态() {
+        var d = deployments.create(creation("reservation-late-01", "d".repeat(64), "迟到拒绝模型")).deployment();
+        var r = reservation(d); verificationStore.reserve(r, () -> true);
+        assertThrows(IllegalArgumentException.class, () -> verificationStore.commit(r, success(d, r), "PASSED", 2,
+                r.expectedSampleDigests().subList(0, 2), () -> true));
+        VERIFICATION_NOW.set(r.deadline().plusSeconds(1));
+        assertThrows(IllegalStateException.class, () -> verificationStore.commit(r, success(d, r), "PASSED", 3, r.expectedSampleDigests(), () -> true));
+        assertEquals(0L, verificationCount()); assertEquals("DRAFT", status(d));
+    }
+
+    @Test void 审计失败回滚验证CAS和终态但保留外呼前预留() {
+        var d = deployments.create(creation("reservation-audit-01", "d".repeat(64), "审计回滚模型")).deployment();
+        var r = reservation(d); verificationStore.reserve(r, () -> true);
+        jdbc.execute("ALTER TABLE model_runtime.platform_model_deployment_verification_audit ADD CONSTRAINT synthetic_reject_success CHECK (NOT succeeded)");
+        try {
+            assertThrows(org.springframework.dao.DataIntegrityViolationException.class,
+                    () -> verificationStore.commit(r, success(d, r), "PASSED", 3, r.expectedSampleDigests(), () -> true));
+            assertEquals(0L, verificationCount()); assertEquals("DRAFT", status(d));
+            assertEquals("ACTIVE", jdbc.queryForObject("SELECT status FROM model_runtime.platform_capability_verification_reservation WHERE id = ?", String.class, r.id()));
+        } finally { jdbc.execute("ALTER TABLE model_runtime.platform_model_deployment_verification_audit DROP CONSTRAINT synthetic_reject_success"); }
+    }
+
+    @Test void 任意三条摘要不能冒充固定安全样本证据() {
+        var d = deployments.create(creation("reservation-manifest-01", "d".repeat(64), "样本清单模型")).deployment();
+        var r = reservation(d);
+        var fabricated = new com.aiplatform.foundation.modelruntime.application.platformsupply.dto.verification.PlatformCapabilityVerificationReservation(
+                r.id(), r.actor(), d, r.targetFingerprint(), r.inputsDigest(), r.planFingerprint(), r.quoteDigest(), r.quoteExpiresAt(), r.sampleVersion(),
+                java.util.List.of("1".repeat(64), "2".repeat(64), "3".repeat(64)), r.reservedFee(), r.startedAt(), r.deadline());
+        assertThrows(IllegalArgumentException.class, () -> verificationStore.reserve(fabricated, () -> true));
+        assertEquals(0L, jdbc.queryForObject("SELECT count(*) FROM model_runtime.platform_capability_verification_reservation", Long.class));
+    }
+
+    @Test void 第一请求前预留已提交且协议回调不持有数据库事务() {
+        var d = deployments.create(creation("reservation-protocol-01", "d".repeat(64), "协议事务模型")).deployment();
+        var actor = reservation(d).actor(); var calls = new java.util.concurrent.atomic.AtomicInteger();
+        var sample = new com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.verification.PlatformCapabilitySampleExecutor() {
+            public com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind providerKind() {
+                return com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind.DETERMINISTIC;
+            }
+            public com.aiplatform.foundation.modelruntime.application.extension.facade.verification.PlatformCapabilitySampleResult execute(
+                    com.aiplatform.foundation.modelruntime.application.extension.facade.request.PlatformCapabilitySampleRequest request) {
+                assertFalse(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive());
+                assertEquals(1L, jdbc.queryForObject("SELECT count(*) FROM model_runtime.platform_capability_verification_reservation WHERE status = 'ACTIVE'", Long.class));
+                calls.incrementAndGet();
+                return new com.aiplatform.foundation.modelruntime.application.extension.facade.verification.PlatformCapabilitySampleResult(
+                        request.binding(), request.type(), null,
+                        java.util.List.of(new com.aiplatform.foundation.modelruntime.application.extension.facade.verification.PlatformCapabilitySampleResult.Embedding(
+                            0, java.util.Collections.nCopies(d.embeddingDimension(), 1.0))), java.util.List.of(), 10L, 0L, false);
+            }
+        };
+        var now = VERIFICATION_NOW.get();
+        var price = new com.aiplatform.foundation.modelruntime.application.platformsupply.dto.verification.PlatformCapabilityVerificationPrice(
+                connectionId.value(), d.providerConnectionRevision(), d.modelCode(), d.modelType(), d.inputs().residency(), "a".repeat(64),
+                now.minusSeconds(60), now.plusSeconds(600), "CNY", "PER_MILLION_TOKENS", java.math.BigDecimal.ONE, java.math.BigDecimal.ZERO, 1024, 1024);
+        var service = new com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformModelProbeProviderService(
+                java.util.List.of(sample), java.util.List.of(), java.util.List.of(price), verificationStore,
+                java.time.Clock.fixed(now, java.time.ZoneOffset.UTC), IDENTIFIERS::incrementAndGet, Duration.ofHours(24));
+        var result = service.probe(new com.aiplatform.foundation.modelruntime.application.platformsupply.command.ProbePlatformModelDeploymentCommand(
+                actor, d.id().toString(), d.version(), Duration.ofSeconds(30), () -> true), d, connections.findById(connectionId).orElseThrow());
+        assertTrue(result.succeeded()); assertEquals(3, calls.get()); assertEquals("VERIFIED", status(d));
+        assertEquals(1L, jdbc.queryForObject("SELECT count(*) FROM model_runtime.platform_model_deployment_verification_audit", Long.class));
+    }
+
+    private long verificationCount() { return jdbc.queryForObject("SELECT count(*) FROM model_runtime.platform_model_capability_verification", Long.class); }
+    private String status(PlatformModelDeployment d) { return jdbc.queryForObject("SELECT status FROM model_runtime.platform_model_deployment WHERE id = ?", String.class, d.id().value()); }
+    private static com.aiplatform.foundation.modelruntime.domain.platformsupply.service.PlatformModelDeploymentVerificationResult success(
+            PlatformModelDeployment d, com.aiplatform.foundation.modelruntime.application.platformsupply.dto.verification.PlatformCapabilityVerificationReservation r) {
+        return PlatformModelDeploymentVerification.verify(d, new PlatformModelCapabilityVerificationId(IDENTIFIERS.incrementAndGet()),
+                new ModelCapabilityObservation(true, d.capabilities(), "S2_PASSED", Duration.ofMillis(1), r.startedAt().plusMillis(1)),
+                r.startedAt().plusSeconds(3600));
+    }
+
+    private com.aiplatform.foundation.modelruntime.application.platformsupply.dto.verification.PlatformCapabilityVerificationReservation reservation(PlatformModelDeployment deployment) {
+        long id = IDENTIFIERS.incrementAndGet();
+        var actor = new com.aiplatform.foundation.security.identity.PlatformRequestContext(
+                new com.aiplatform.foundation.security.identity.SubjectId(101), com.aiplatform.foundation.security.identity.CredentialType.PERSON,
+                com.aiplatform.foundation.security.identity.AccessChannel.CONSOLE, 1,
+                Set.of(com.aiplatform.foundation.security.identity.PlatformPermissions.SESSION_ACCESS, com.aiplatform.foundation.security.identity.PlatformPermissions.MODEL_PLATFORM_WRITE), "synthetic-verification");
+        var started = VERIFICATION_NOW.get().minusSeconds(2);
+        return new com.aiplatform.foundation.modelruntime.application.platformsupply.dto.verification.PlatformCapabilityVerificationReservation(
+                id, actor, deployment, "a".repeat(64), "b".repeat(64), String.format("%064x", id), "c".repeat(64),
+                started.plusSeconds(900), "s2-capability-safety-v1", com.aiplatform.foundation.modelruntime.application.platformsupply.service.PlatformCapabilitySafetySuite.sampleDigests(deployment.modelType()),
+                new java.math.BigDecimal("0.01"), started, started.plusSeconds(30));
+    }
+
     @SpringBootConfiguration @EnableAutoConfiguration
     @org.mybatis.spring.annotation.MapperScan(basePackageClasses = com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderConnectionMapper.class)
     static class TestApplication {
@@ -260,6 +380,20 @@ class PostgresPlatformModelDeploymentRepositoryTest {
                     },
                     java.time.Clock.fixed(CREATED_AT, java.time.ZoneOffset.UTC));
         }
-        @Bean PlatformModelDeploymentVerificationStore platformModelDeploymentVerificationStore(JdbcTemplate jdbc, PlatformTransactionManager transactions) { return new PostgresPlatformModelDeploymentVerificationStore(jdbc, transactions); }
+        @Bean PlatformModelDeploymentVerificationStore platformModelDeploymentVerificationStore(
+                com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformCapabilityVerificationMapper mapper,
+                com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformModelDeploymentMapper deploymentMapper,
+                PlatformModelDeploymentRepository repository,
+                com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformProviderModelCandidateMapper candidates,
+                PlatformProviderConnectionRepository connections, PlatformTransactionManager transactions) {
+            var clock = new java.time.Clock() {
+                public java.time.ZoneId getZone() { return java.time.ZoneOffset.UTC; }
+                public java.time.Clock withZone(java.time.ZoneId zone) { return this; }
+                public Instant instant() { return VERIFICATION_NOW.get(); }
+            };
+            return new PostgresPlatformModelDeploymentVerificationStore(mapper, deploymentMapper, repository,
+                    new PostgresPlatformProviderModelDiscoveryStore(transactions, connections, candidates),
+                    () -> context -> { if (!ACTOR_CURRENT.get()) throw new com.aiplatform.foundation.security.session.InvalidAuthenticatedSessionException(); }, transactions, clock);
+        }
     }
 }

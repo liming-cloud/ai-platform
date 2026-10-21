@@ -5,7 +5,6 @@ import com.aiplatform.foundation.modelruntime.application.extension.facade.Model
 import com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderKind;
 import com.aiplatform.foundation.modelruntime.application.extension.facade.ProviderProbeObservation;
 import com.aiplatform.foundation.modelruntime.application.extension.facade.request.ProviderProbeRequest;
-import com.aiplatform.foundation.modelruntime.application.extension.facade.request.PlatformModelDeploymentProbeRequest;
 import com.aiplatform.foundation.security.egress.OutboundEndpointPolicy;
 import com.aiplatform.foundation.security.egress.UnsafeOutboundEndpointException;
 import com.aiplatform.foundation.security.secret.SecretResolver;
@@ -55,13 +54,6 @@ public final class OpenAiCompatibleConnectionProbe implements ProviderConnection
     @Override
     public ProviderProbeObservation probe(ProviderProbeRequest request) {
         Objects.requireNonNull(request, "探测请求不能为空");
-        return probe(request.providerKind(), request.endpoint(), request.credentialReference(), request.modelCode(),
-                request.requestedCapabilities(), request.timeout());
-    }
-
-    // 平台适配器只注入平台解析器，不借助虚构租户或租户范围请求复用协议实现。
-    ProviderProbeObservation probePlatform(PlatformModelDeploymentProbeRequest request) {
-        Objects.requireNonNull(request, "平台探测请求不能为空");
         return probe(request.providerKind(), request.endpoint(), request.credentialReference(), request.modelCode(),
                 request.requestedCapabilities(), request.timeout());
     }

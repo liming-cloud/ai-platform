@@ -1,5 +1,9 @@
 package com.aiplatform.foundation.modelruntime.infrastructure.configuration;
 
+import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoveryLookup;
+import org.springframework.beans.factory.ObjectProvider;
+import java.time.Clock;
+
 import com.aiplatform.foundation.modelruntime.domain.deployment.repository.ModelDeploymentRepository;
 import com.aiplatform.foundation.modelruntime.application.deployment.port.out.ModelDeploymentVerificationStore;
 import com.aiplatform.foundation.modelruntime.application.provider.port.out.ProviderModelDiscoveryStore;
@@ -158,9 +162,13 @@ public class ModelRuntimePersistenceAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     PlatformModelDeploymentVerificationStore platformModelDeploymentVerificationStore(
-            JdbcTemplate jdbc,
+            com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformCapabilityVerificationMapper mapper,
+            com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformModelDeploymentMapper deployments,
+            PlatformModelDeploymentRepository repository, PlatformProviderModelDiscoveryLookup discoveries,
+            ObjectProvider<com.aiplatform.foundation.security.identity.PlatformModelWriteFacts> actors,
             PlatformTransactionManager transactions) {
-        return new PostgresPlatformModelDeploymentVerificationStore(jdbc, transactions);
+        return new PostgresPlatformModelDeploymentVerificationStore(mapper, deployments, repository, discoveries,
+                actors::getIfAvailable, transactions, Clock.systemUTC());
     }
 
     @Bean
@@ -175,8 +183,9 @@ public class ModelRuntimePersistenceAutoConfiguration {
     @ConditionalOnMissingBean(PlatformProviderConnectionCredentialWriter.class)
     PostgresEncryptedPlatformProviderConnectionCredentialStore platformProviderConnectionCredentialWriter(
             JdbcTemplate jdbc,
-            SecretEncryptionKeyProvider keyProvider) {
-        return new PostgresEncryptedPlatformProviderConnectionCredentialStore(jdbc, keyProvider);
+            SecretEncryptionKeyProvider keyProvider,
+            com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformCapabilityCredentialMapper credentials) {
+        return new PostgresEncryptedPlatformProviderConnectionCredentialStore(jdbc, keyProvider, credentials);
     }
 
     @Bean

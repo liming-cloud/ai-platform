@@ -98,7 +98,7 @@ class PlatformModelDeploymentServiceTest {
 
         var failure = assertThrows(IllegalStateException.class, () -> fixture.service().probe(
                 new ProbePlatformModelDeploymentCommand(command().context(), draft.id().toString(),
-                        draft.version(), Duration.ofSeconds(5))));
+                        draft.version(), Duration.ofSeconds(5), () -> true)));
 
         assertEquals("平台供应商连接当前修订尚未发布", failure.getMessage());
         verifyNoInteractions(fixture.probeProvider(), fixture.verificationStore());
@@ -129,15 +129,14 @@ class PlatformModelDeploymentServiceTest {
         when(fixture.deployments().findById(draft.id())).thenReturn(Optional.of(draft));
 
         var result = fixture.service().probe(new ProbePlatformModelDeploymentCommand(command().context(),
-                draft.id().toString(), draft.version(), Duration.ofSeconds(5)));
+                draft.id().toString(), draft.version(), Duration.ofSeconds(5), () -> true));
 
         assertEquals("VERIFIED", result.deployment().status());
-        verify(fixture.probeProvider()).probe(any());
-        verify(fixture.verificationStore()).commit(any(), eq(draft.version()));
+        verify(fixture.probeProvider()).probe(any(), eq(draft), any());
     }
 
     @Test
-    void 当前来源明确发布后已验证部署仍可发布() {
+    void 原子发布合同未闭合时完整草稿不能提前发布() {
         var fixture = fixture();
         var verified = historicalDraft().verify(new PlatformModelCapabilityVerificationId(630000000000000001L),
                 NOW.plusSeconds(3600));
@@ -145,12 +144,11 @@ class PlatformModelDeploymentServiceTest {
         when(fixture.deployments().findById(verified.id())).thenReturn(Optional.of(verified));
         when(fixture.deployments().update(any(), anyLong())).thenReturn(true);
 
-        var result = fixture.service().publish(new PublishPlatformModelDeploymentCommand(command().context(),
-                verified.id().toString(), verified.version()));
-
-        assertEquals("PUBLISHED", result.status());
-        assertEquals(verified.version() + 1, result.version());
-        verify(fixture.deployments()).update(any(), eq(verified.version()));
+        var failure = assertThrows(com.aiplatform.foundation.shared.kernel.error.ApplicationException.class,
+                () -> fixture.service().publish(new PublishPlatformModelDeploymentCommand(command().context(),
+                    verified.id().toString(), verified.version())));
+        assertEquals(com.aiplatform.foundation.modelruntime.domain.common.error.ModelRuntimeErrorCode.PLATFORM_DEPLOYMENT_CONTRACT_PENDING, failure.errorCode());
+        verify(fixture.deployments(), never()).update(any(), anyLong());
         verifyNoInteractions(fixture.probeProvider(), fixture.verificationStore());
     }
 
@@ -165,7 +163,7 @@ class PlatformModelDeploymentServiceTest {
 
             var failure = assertThrows(IllegalStateException.class, () -> fixture.service().probe(
                     new ProbePlatformModelDeploymentCommand(command().context(), draft.id().toString(),
-                            draft.version(), Duration.ofSeconds(5))));
+                            draft.version(), Duration.ofSeconds(5), () -> true)));
 
             assertEquals("平台供应商连接当前修订尚未发布", failure.getMessage());
             verifyNoInteractions(fixture.probeProvider(), fixture.verificationStore());
@@ -193,9 +191,12 @@ class PlatformModelDeploymentServiceTest {
     }
 
     private static PlatformModelDeployment historicalDraft() {
-        return PlatformModelDeployment.create(new PlatformModelDeploymentId(620000000000000001L), CONNECTION_ID,
+        return PlatformModelDeployment.createDraft(new PlatformModelDeploymentId(620000000000000001L), CONNECTION_ID,
                 1L, "deterministic-embedding", "平台嵌入部署", ModelType.EMBEDDING,
-                Set.of(ModelCapability.EMBEDDING), 8192, null, 1024, NOW.minusSeconds(120));
+                Set.of(ModelCapability.EMBEDDING), 8192, null, 1024, NOW.minusSeconds(120),
+                new com.aiplatform.foundation.modelruntime.domain.platformsupply.model.deployment.PlatformModelDeploymentInputs(
+                    "合成资料 v1", "合成北京区域", null, Set.of(201L), 301L, "合成向量模型",
+                    com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformModelCandidateClassification.CONFIRMED_BY_PROVIDER, 101L, NOW.minusSeconds(120)));
     }
 
     private static void assertUnpublishedConnection(DeploymentFixture fixture) {
@@ -262,11 +263,14 @@ class PlatformModelDeploymentServiceTest {
             return new PlatformModelDeploymentCreationOutcome(creation.deployment(), false);
         });
         var probeProvider = mock(PlatformModelProbeProviderService.class);
-        when(probeProvider.probe(any())).thenReturn(new ProviderProbeResult(ProviderKind.DETERMINISTIC, true,
-                Set.of(ModelCapability.EMBEDDING), Duration.ZERO, "PLATFORM_MODEL_PROBE_OK", NOW));
+        when(probeProvider.probe(any(), any(), any())).thenAnswer(invocation -> {
+            PlatformModelDeployment draft = invocation.getArgument(1);
+            return new PlatformModelProbeProviderService.Result(draft.verify(new PlatformModelCapabilityVerificationId(630000000000000001L), NOW.plusSeconds(3600)), true,
+                    Set.of(ModelCapability.EMBEDDING), Duration.ZERO, "S2_PASSED", NOW);
+        });
         var verificationStore = mock(PlatformModelDeploymentVerificationStore.class);
         var service = new PlatformModelDeploymentService(deployments, connections, publications, discoveries,
-                probeProvider, verificationStore, clock, () -> 630000000000000002L, Duration.ofHours(24), true);
+                probeProvider, clock, () -> 630000000000000002L, true);
         return new DeploymentFixture(service, publications, discoveries, deployments, probeProvider, verificationStore, connection);
     }
 
@@ -280,15 +284,16 @@ class PlatformModelDeploymentServiceTest {
         var publications = mock(PlatformProviderConnectionPublicationRepository.class);
         var service = new PlatformModelDeploymentService(
                 new ForbiddenDeploymentRepository(), new ForbiddenConnectionRepository(), publications, new ForbiddenDiscoveryLookup(),
-                new PlatformModelProbeProviderService(java.util.List.of(), Clock.systemUTC()),
-                new ForbiddenVerificationStore(), Clock.systemUTC(), () -> 620000000000000001L, Duration.ofHours(24), true);
+                new PlatformModelProbeProviderService(java.util.List.of(), java.util.List.of(), java.util.List.of(),
+                    new ForbiddenVerificationStore(), Clock.systemUTC(), () -> 630000000000000001L, Duration.ofHours(24)),
+                Clock.systemUTC(), () -> 620000000000000001L, true);
 
         assertThrows(ModelCatalogPermissionDeniedException.class, () -> service.create(new CreatePlatformModelDeploymentCommand(
                 sessionWithoutPlatformModelWrite(), "platform-deploy-0001", "610000000000000001", 1,
                 "deterministic-embedding", "平台嵌入", ModelType.EMBEDDING, Set.of(ModelCapability.EMBEDDING),
                 8192, null, 1024, null, "合成资料 v1", Set.of("201"), true)));
         assertThrows(ModelCatalogPermissionDeniedException.class, () -> service.probe(new ProbePlatformModelDeploymentCommand(
-                sessionWithoutPlatformModelWrite(), "620000000000000001", 0L, Duration.ofSeconds(5))));
+                sessionWithoutPlatformModelWrite(), "620000000000000001", 0L, Duration.ofSeconds(5), () -> true)));
         assertThrows(ModelCatalogPermissionDeniedException.class, () -> service.publish(new PublishPlatformModelDeploymentCommand(
                 sessionWithoutPlatformModelWrite(), "620000000000000001", 1L)));
         verifyNoInteractions(publications);
@@ -320,6 +325,10 @@ class PlatformModelDeploymentServiceTest {
         @Override public com.aiplatform.foundation.shared.contract.paging.PageResult<com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformDiscoveredModelCandidate> findCurrentCandidates(PlatformProviderConnectionId connectionId, long connectionRevision, com.aiplatform.foundation.shared.contract.paging.PageQuery page, java.time.Instant now, String q) { throw new AssertionError("无权请求不得读取平台候选"); }
     }
     private static final class ForbiddenVerificationStore implements PlatformModelDeploymentVerificationStore {
-        @Override public void commit(PlatformModelDeploymentVerificationResult verification, long expectedDeploymentVersion) { throw new AssertionError("无权请求不得写入平台验证事实"); }
+        @Override public void reserve(com.aiplatform.foundation.modelruntime.application.platformsupply.dto.verification.PlatformCapabilityVerificationReservation reservation,
+                java.util.function.BooleanSupplier sessionActive) { throw new AssertionError("无权请求不得预留预算"); }
+        @Override public void commit(com.aiplatform.foundation.modelruntime.application.platformsupply.dto.verification.PlatformCapabilityVerificationReservation reservation,
+                PlatformModelDeploymentVerificationResult verification, String outcome, int count, java.util.List<String> passed,
+                java.util.function.BooleanSupplier sessionActive) { throw new AssertionError("无权请求不得写入平台验证事实"); }
     }
 }

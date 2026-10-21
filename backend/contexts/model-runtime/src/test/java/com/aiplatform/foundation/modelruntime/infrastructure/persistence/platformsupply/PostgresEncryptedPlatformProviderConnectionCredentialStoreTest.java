@@ -54,6 +54,7 @@ class PostgresEncryptedPlatformProviderConnectionCredentialStoreTest {
 
     @BeforeEach
     void prepareConnection() {
+        jdbc.update("DELETE FROM model_runtime.platform_provider_connection_publication");
         jdbc.update("DELETE FROM model_runtime.platform_provider_connection_credential");
         jdbc.update("DELETE FROM model_runtime.platform_provider_connection_request");
         jdbc.update("DELETE FROM model_runtime.platform_provider_connection");
@@ -111,6 +112,28 @@ class PostgresEncryptedPlatformProviderConnectionCredentialStoreTest {
                         "secret://platform-provider-connection/320000000000000001?purpose=other"));
     }
 
+    @Test
+    void 能力验证不能在轮换后读取新修订的Key() {
+        String reference = "secret://platform-provider-connection/" + CONNECTION_ID;
+        write(reference, "synthetic-first-key");
+        var now = java.time.Instant.now();
+        jdbc.update("UPDATE model_runtime.platform_provider_connection SET status = 'VERIFIED', version = 1, last_probe_succeeded = TRUE, last_probe_code = 'SYNTHETIC_OK', last_probed_at = ? WHERE id = ?",
+                java.sql.Timestamp.from(now), CONNECTION_ID);
+        jdbc.update("INSERT INTO model_runtime.platform_provider_connection_publication VALUES (?, ?, 1, 1, 101, ?, ?)",
+                CONNECTION_ID + 1, CONNECTION_ID, java.sql.Timestamp.from(now), java.sql.Timestamp.from(now));
+        try (var value = credentials.resolve(reference, 1)) { assertEquals("synthetic-first-key", value.use(String::new)); }
+        jdbc.update("UPDATE model_runtime.platform_provider_connection SET version = 2 WHERE id = ?", CONNECTION_ID);
+        write(reference, "synthetic-rotated-key");
+        assertThrows(IllegalStateException.class, () -> { try (var value = credentials.resolve(reference, 1)) { org.junit.jupiter.api.Assertions.assertNotNull(value); } });
+    }
+
+    @Test
+    void 能力验证不能用独立发现凭据替代推理Key() {
+        String reference = "secret://platform-provider-discovery-access-key/" + CONNECTION_ID;
+        write(reference, "synthetic-discovery-only");
+        assertThrows(IllegalArgumentException.class, () -> { try (var value = credentials.resolve(reference, 0)) { org.junit.jupiter.api.Assertions.assertNotNull(value); } });
+    }
+
     private void write(String reference, String value) {
         try (var secret = SecretValue.copyOf(value.toCharArray())) {
             credentials.write(new CredentialReference(reference), secret);
@@ -125,6 +148,7 @@ class PostgresEncryptedPlatformProviderConnectionCredentialStoreTest {
 
     @SpringBootConfiguration
     @EnableAutoConfiguration
+    @org.mybatis.spring.annotation.MapperScan(basePackageClasses = com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformCapabilityCredentialMapper.class)
     static class TestApplication {
 
         @Bean
@@ -149,8 +173,9 @@ class PostgresEncryptedPlatformProviderConnectionCredentialStoreTest {
 
         @Bean
         PostgresEncryptedPlatformProviderConnectionCredentialStore credentials(
-                JdbcTemplate jdbc, SecretEncryptionKeyProvider keyProvider) {
-            return new PostgresEncryptedPlatformProviderConnectionCredentialStore(jdbc, keyProvider);
+                JdbcTemplate jdbc, SecretEncryptionKeyProvider keyProvider,
+                com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformCapabilityCredentialMapper mapper) {
+            return new PostgresEncryptedPlatformProviderConnectionCredentialStore(jdbc, keyProvider, mapper);
         }
     }
 }

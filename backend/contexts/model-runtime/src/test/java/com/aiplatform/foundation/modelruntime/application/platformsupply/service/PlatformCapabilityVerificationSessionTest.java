@@ -50,6 +50,21 @@ class PlatformCapabilityVerificationSessionTest {
     }
 
     @Test
+    void 首次外呼前能冻结整轮计划和预留且后续样本不能变更() {
+        var target = target(ModelType.CHAT);
+        var seen = new ArrayList<Request>();
+        var result = session().run(target, tariff(target), FEE_LIMIT, () -> false, request -> {
+            assertNotNull(request.planFingerprint(), "持久化预留不能等外呼结束才取得计划");
+            assertNotNull(request.reservedFee(), "首次外呼前必须能持久化整轮费用上界");
+            seen.add(request); return valid(request);
+        });
+        assertEquals(Outcome.PASSED, result.outcome());
+        assertEquals(3, seen.size());
+        assertTrue(seen.stream().allMatch(request -> request.planFingerprint().equals(result.planFingerprint())
+                && request.reservedFee().compareTo(result.reservedFee()) == 0));
+    }
+
+    @Test
     void 缺失过期未来或不属于当前修订的报价一律在调用前拒绝() {
         var target = target(ModelType.CHAT);
         var good = tariff(target);

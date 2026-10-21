@@ -48,6 +48,12 @@
         ORDER BY binding.role_code
     </select>
 
+    <!-- 模型写入复核共用授权根锁；不需要也不读取密码摘要或登录名。 -->
+    <select id="lockModelWriteSubject" resultType="long" flushCache="true" useCache="false">
+        SELECT subject_id FROM organization_access.subject_identity
+        WHERE subject_id = #{subjectId} AND status = 'ACTIVE' FOR UPDATE
+    </select>
+
     <select id="lockSubject" resultMap="subjectIdentity">
         SELECT subject_id, login_name, password_hash, status, version, created_at
         FROM organization_access.subject_identity

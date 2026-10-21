@@ -3,13 +3,11 @@ package com.aiplatform.foundation.provider.openaicompatible.autoconfigure;
 import com.aiplatform.foundation.modelruntime.application.probe.port.out.ProviderConnectionProbe;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoverer;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderCredentialResolver;
-import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformModelDeploymentProbe;
 import com.aiplatform.foundation.modelruntime.application.runtime.port.out.ChatModelFactory;
 import com.aiplatform.foundation.modelruntime.application.runtime.port.out.EmbeddingModelFactory;
 import com.aiplatform.foundation.modelruntime.application.runtime.facade.ModelRuntimeCallSettings;
 import com.aiplatform.foundation.provider.openaicompatible.OpenAiCompatibleChatModelFactory;
 import com.aiplatform.foundation.provider.openaicompatible.OpenAiCompatibleConnectionProbe;
-import com.aiplatform.foundation.provider.openaicompatible.OpenAiCompatiblePlatformModelDeploymentProbe;
 import com.aiplatform.foundation.provider.openaicompatible.OpenAiCompatiblePlatformProviderModelDiscoverer;
 import com.aiplatform.foundation.provider.openaicompatible.VolcengineArkPlatformProviderModelDiscoverer;
 import com.aiplatform.foundation.provider.openaicompatible.SiliconFlowRerankModelDiscoverer;
@@ -36,10 +34,10 @@ public class OpenAiCompatibleProviderAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnBean(PlatformProviderCredentialResolver.class)
-    PlatformModelDeploymentProbe openAiCompatiblePlatformModelDeploymentProbe(
-            PlatformProviderCredentialResolver secrets, OutboundEndpointPolicy endpointPolicy) {
-        return new OpenAiCompatiblePlatformModelDeploymentProbe(secrets, endpointPolicy);
+    @ConditionalOnBean(com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.verification.PlatformCapabilityCredentialResolver.class)
+    com.aiplatform.foundation.provider.openaicompatible.OpenAiCompatiblePlatformCapabilitySamples openAiCompatiblePlatformCapabilitySamples(
+            com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.verification.PlatformCapabilityCredentialResolver secrets, OutboundEndpointPolicy endpointPolicy) {
+        return new com.aiplatform.foundation.provider.openaicompatible.OpenAiCompatiblePlatformCapabilitySamples(secrets, endpointPolicy);
     }
 
     @Bean

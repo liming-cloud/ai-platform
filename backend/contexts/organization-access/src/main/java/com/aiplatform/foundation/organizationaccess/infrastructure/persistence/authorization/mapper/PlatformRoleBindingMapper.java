@@ -9,6 +9,8 @@ import org.apache.ibatis.annotations.Param;
 
 /** 读取活动平台角色绑定认证事实的 MyBatis 映射器。 */
 public interface PlatformRoleBindingMapper {
+    /** 与角色变更共用主体根锁，只读取活动主体标识，不加载密码摘要。 */
+    Long lockModelWriteSubject(@Param("subjectId") long subjectId);
 
     String lockAdministratorDisableGate();
 

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformCapabilityVerificationMapper">
+    <select id="lockDeployment" resultType="long" flushCache="true" useCache="false">
+        SELECT id FROM model_runtime.platform_model_deployment WHERE id = #{id} AND scope = 'PLATFORM' FOR UPDATE
+    </select>
+    <update id="expire">
+        UPDATE model_runtime.platform_capability_verification_reservation SET status = 'TIMED_OUT', outcome = 'DEADLINE_EXCEEDED', completed_at = #{now}
+        WHERE deployment_id = #{id} AND status = 'ACTIVE' AND deadline &lt;= #{now}
+    </update>
+    <insert id="reserve">
+        INSERT INTO model_runtime.platform_capability_verification_reservation
+            (id, deployment_id, deployment_revision, actor_subject_id, actor_permission_version,
+             target_fingerprint, inputs_digest, plan_fingerprint, quote_digest, quote_expires_at, sample_version,
+             expected_sample_digests, reserved_fee, status, started_at, deadline)
+        VALUES (#{r.id}, #{r.deployment.id.value}, #{r.deployment.version}, #{r.actor.subjectId.value}, #{r.actor.permissionVersion},
+             #{r.targetFingerprint}, #{r.inputsDigest}, #{r.planFingerprint}, #{r.quoteDigest}, #{r.quoteExpiresAt}, #{r.sampleVersion},
+             string_to_array(#{samples}, ','), #{r.reservedFee}, 'ACTIVE', #{r.startedAt}, #{r.deadline})
+    </insert>
+    <select id="lockReservation" resultType="string" flushCache="true" useCache="false">
+        SELECT plan_fingerprint FROM model_runtime.platform_capability_verification_reservation
+        WHERE id = #{r.id} AND status = 'ACTIVE' AND deployment_id = #{r.deployment.id.value} AND deployment_revision = #{r.deployment.version}
+          AND target_fingerprint = #{r.targetFingerprint} AND inputs_digest = #{r.inputsDigest} AND plan_fingerprint = #{r.planFingerprint}
+          AND quote_digest = #{r.quoteDigest} AND quote_expires_at = #{r.quoteExpiresAt} AND sample_version = #{r.sampleVersion}
+          AND actor_subject_id = #{r.actor.subjectId.value} AND actor_permission_version = #{r.actor.permissionVersion}
+          AND reserved_fee = #{r.reservedFee} AND started_at = #{r.startedAt} AND deadline = #{r.deadline} FOR UPDATE
+    </select>
+    <insert id="insertVerification">
+        INSERT INTO model_runtime.platform_model_capability_verification
+            (id, platform_model_deployment_id, deployment_revision, platform_provider_connection_id,
+             platform_provider_connection_revision, model_code, declared_capabilities, observed_capabilities,
+             succeeded, result_code, elapsed_millis, probed_at, expires_at)
+        VALUES (#{v.id.value}, #{v.deploymentId.value}, #{v.deploymentRevision}, #{v.providerConnectionId.value},
+             #{v.providerConnectionRevision}, #{v.modelCode}, string_to_array(#{declared}, ','), string_to_array(#{observed}, ','),
+             #{v.succeeded}, #{v.resultCode}, #{elapsedMillis}, #{v.probedAt}, #{v.expiresAt})
+    </insert>
+    <update id="updateVerified">
+        UPDATE model_runtime.platform_model_deployment
+        SET status = #{d.status}, last_verification_id = #{d.lastVerificationId.value}, verification_expires_at = #{d.verificationExpiresAt}, version = #{d.version}
+        WHERE id = #{d.id.value} AND scope = 'PLATFORM' AND version = #{expected} AND status = 'DRAFT'
+    </update>
+    <update id="finish">
+        UPDATE model_runtime.platform_capability_verification_reservation
+        SET status = 'COMPLETED', outcome = #{outcome}, attempted_requests = #{count}, passed_sample_digests = string_to_array(#{passed}, ','), completed_at = #{now}
+        WHERE id = #{r.id} AND status = 'ACTIVE' AND plan_fingerprint = #{r.planFingerprint}
+    </update>
+    <insert id="audit">
+        INSERT INTO model_runtime.platform_model_deployment_verification_audit
+            (reservation_id, verification_id, deployment_id, actor_subject_id, actor_permission_version, succeeded, occurred_at)
+        VALUES (#{r.id}, #{verificationId}, #{r.deployment.id.value}, #{r.actor.subjectId.value}, #{r.actor.permissionVersion}, #{succeeded}, #{now})
+    </insert>
+</mapper>

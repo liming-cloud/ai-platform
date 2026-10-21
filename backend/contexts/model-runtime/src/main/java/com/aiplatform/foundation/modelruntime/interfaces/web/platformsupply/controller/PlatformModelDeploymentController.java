@@ -84,9 +84,16 @@ public class PlatformModelDeploymentController {
     @PostMapping("/{modelDeploymentId}/probe")
     public ProbePlatformModelDeploymentResult probe(
             PlatformRequestContext context, @PathVariable String modelDeploymentId,
-            @RequestBody PlatformModelDeploymentProbeRequest request) {
+            @RequestBody PlatformModelDeploymentProbeRequest request,
+            org.springframework.web.context.request.NativeWebRequest httpRequest) {
+        var continuity = httpRequest.getAttribute(
+                com.aiplatform.foundation.security.session.PlatformSessionContinuity.REQUEST_ATTRIBUTE,
+                org.springframework.web.context.request.RequestAttributes.SCOPE_REQUEST);
+        if (!(continuity instanceof com.aiplatform.foundation.security.session.PlatformSessionContinuity session)
+                || !session.matches(context))
+            throw new com.aiplatform.foundation.security.session.InvalidAuthenticatedSessionException();
         return deployments.probe(new ProbePlatformModelDeploymentCommand(context, modelDeploymentId,
-                request.expectedVersion(), Duration.ofMillis(request.timeoutMillis())));
+                request.expectedVersion(), Duration.ofMillis(request.timeoutMillis()), session));
     }
 
     @PostMapping("/{modelDeploymentId}/publish")

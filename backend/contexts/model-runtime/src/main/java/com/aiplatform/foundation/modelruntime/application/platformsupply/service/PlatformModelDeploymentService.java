@@ -7,15 +7,11 @@ import com.aiplatform.foundation.modelruntime.application.platformsupply.command
 import com.aiplatform.foundation.modelruntime.application.platformsupply.command.ProbePlatformModelDeploymentCommand;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.command.PublishPlatformModelDeploymentCommand;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.dto.CreatePlatformModelDeploymentResult;
-import com.aiplatform.foundation.modelruntime.application.platformsupply.dto.PlatformModelDeploymentProbeRequest;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.dto.PlatformModelDeploymentView;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.dto.ProbePlatformModelDeploymentResult;
-import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformModelDeploymentVerificationStore;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.PlatformProviderModelDiscoveryLookup;
 import com.aiplatform.foundation.modelruntime.application.platformsupply.query.ListPlatformModelDeploymentsQuery;
 import com.aiplatform.foundation.modelruntime.application.provider.exception.ModelCatalogPermissionDeniedException;
-import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapabilityObservation;
-import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelCapabilityVerificationId;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDeployment;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDeploymentId;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDeploymentStatus;
@@ -25,7 +21,6 @@ import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.P
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformModelDeploymentRepository;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformProviderConnectionPublicationRepository;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformProviderConnectionRepository;
-import com.aiplatform.foundation.modelruntime.domain.platformsupply.service.PlatformModelDeploymentVerification;
 import com.aiplatform.foundation.security.identity.PlatformPermissions;
 import com.aiplatform.foundation.security.identity.PlatformRequestContext;
 import com.aiplatform.foundation.shared.contract.paging.PageResult;
@@ -34,7 +29,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
-import java.time.Duration;
 import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.Objects;
@@ -46,27 +40,22 @@ public final class PlatformModelDeploymentService {
     private final PlatformProviderConnectionPublicationRepository publications;
     private final PlatformProviderModelDiscoveryLookup discoveries;
     private final PlatformModelProbeProviderService probeProvider;
-    private final PlatformModelDeploymentVerificationStore verificationStore;
     private final Clock clock;
     private final EntityIdGenerator identifiers;
-    private final Duration verificationValidity;
     private final boolean writesAvailable;
 
     public PlatformModelDeploymentService(
             PlatformModelDeploymentRepository deployments, PlatformProviderConnectionRepository connections,
             PlatformProviderConnectionPublicationRepository publications,
             PlatformProviderModelDiscoveryLookup discoveries, PlatformModelProbeProviderService probeProvider,
-            PlatformModelDeploymentVerificationStore verificationStore, Clock clock,
-            EntityIdGenerator identifiers, Duration verificationValidity, boolean writesAvailable) {
+            Clock clock, EntityIdGenerator identifiers, boolean writesAvailable) {
         this.deployments = Objects.requireNonNull(deployments, "平台模型部署仓储不能为空");
         this.connections = Objects.requireNonNull(connections, "平台供应商连接仓储不能为空");
         this.publications = Objects.requireNonNull(publications, "平台连接发布仓储不能为空");
         this.discoveries = Objects.requireNonNull(discoveries, "平台模型发现读取端口不能为空");
         this.probeProvider = Objects.requireNonNull(probeProvider, "平台模型探测用例不能为空");
-        this.verificationStore = Objects.requireNonNull(verificationStore, "平台模型能力验证存储不能为空");
         this.clock = Objects.requireNonNull(clock, "时钟不能为空");
         this.identifiers = Objects.requireNonNull(identifiers, "标识生成器不能为空");
-        this.verificationValidity = requirePositive(verificationValidity);
         this.writesAvailable = writesAvailable;
     }
 
@@ -149,23 +138,16 @@ public final class PlatformModelDeploymentService {
         requirePermission(command.context());
         requireWrites();
         var deployment = load(command.modelDeploymentId(), command.expectedVersion());
-        if (deployment.inputs() != null) throw new com.aiplatform.foundation.shared.kernel.error.ApplicationException(
+        if (deployment.inputs() == null) throw new com.aiplatform.foundation.shared.kernel.error.ApplicationException(
                 com.aiplatform.foundation.modelruntime.domain.common.error.ModelRuntimeErrorCode.PLATFORM_DEPLOYMENT_CONTRACT_PENDING);
         var connection = loadFrozenConnection(deployment);
-        var result = probeProvider.probe(new PlatformModelDeploymentProbeRequest(connection.providerKind(), connection.endpoint(),
-                connection.credentialReference(), deployment.modelCode(), deployment.capabilities(), command.timeout()));
-        var verification = PlatformModelDeploymentVerification.verify(deployment,
-                new PlatformModelCapabilityVerificationId(identifiers.nextId()),
-                new ModelCapabilityObservation(result.reachable(), result.capabilities(), result.detailCode(),
-                        result.elapsed(), result.probedAt()), result.probedAt().plus(verificationValidity));
-        verificationStore.commit(verification, command.expectedVersion());
-        return new ProbePlatformModelDeploymentResult(toView(verification.revisedDeployment(), connection, result.probedAt()),
-                verification.verification().succeeded(), result.capabilities(), result.elapsed(),
-                verification.verification().resultCode(), result.probedAt());
+        var result = probeProvider.probe(command, deployment, connection);
+        return new ProbePlatformModelDeploymentResult(toView(result.deployment(), connection, result.at()),
+                result.succeeded(), result.observed(), result.elapsed(), result.code(), result.at());
     }
 
     /**
-     * 仅发布验证有效且冻结来源仍已独立发布的部署；不因旧验证成功放宽来源要求。
+     * 发布前复核冻结来源；原子供应目录和授权合同未接入时继续失败关闭。
      *
      * @throws IllegalStateException 来源失效、尚未发布或部署修订变化时拒绝发布。
      */
@@ -174,12 +156,9 @@ public final class PlatformModelDeploymentService {
         requirePermission(command.context());
         requireWrites();
         var deployment = load(command.modelDeploymentId(), command.expectedVersion());
-        if (deployment.inputs() != null) throw new com.aiplatform.foundation.shared.kernel.error.ApplicationException(
+        loadFrozenConnection(deployment);
+        throw new com.aiplatform.foundation.shared.kernel.error.ApplicationException(
                 com.aiplatform.foundation.modelruntime.domain.common.error.ModelRuntimeErrorCode.PLATFORM_DEPLOYMENT_CONTRACT_PENDING);
-        var connection = loadFrozenConnection(deployment);
-        var published = deployment.publish(clock.instant());
-        if (!deployments.update(published, command.expectedVersion())) throw new IllegalStateException("平台模型部署修订已变化");
-        return toView(published, connection, clock.instant());
     }
 
     /** 停用部署以阻断新目录发布和运行时调用，保留既有验证审计。 */
@@ -228,12 +207,6 @@ public final class PlatformModelDeploymentService {
     private static void requirePermission(PlatformRequestContext context) {
         context = Objects.requireNonNull(context, "平台请求上下文不能为空");
         if (!context.hasPermission(PlatformPermissions.MODEL_PLATFORM_WRITE)) throw new ModelCatalogPermissionDeniedException();
-    }
-
-    private static Duration requirePositive(Duration value) {
-        value = Objects.requireNonNull(value, "平台模型能力验证有效期不能为空");
-        if (value.isNegative() || value.isZero()) throw new IllegalArgumentException("平台模型能力验证有效期必须大于零");
-        return value;
     }
 
     private PlatformModelDeploymentView toView(PlatformModelDeployment deployment,

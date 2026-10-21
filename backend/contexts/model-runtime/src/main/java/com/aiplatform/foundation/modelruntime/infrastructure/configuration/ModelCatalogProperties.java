@@ -8,6 +8,15 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  */
 @ConfigurationProperties("foundation.model-catalog")
 public class ModelCatalogProperties {
+    private java.util.List<com.aiplatform.foundation.modelruntime.application.platformsupply.dto.verification.PlatformCapabilityVerificationPrice> platformVerificationPrices = java.util.List.of();
+
+    /** 仅启动时装配已核实的非秘密计价材料；缺省不提供报价，正式验证零外呼失败关闭。 */
+    public java.util.List<com.aiplatform.foundation.modelruntime.application.platformsupply.dto.verification.PlatformCapabilityVerificationPrice> getPlatformVerificationPrices() {
+        return platformVerificationPrices;
+    }
+    public void setPlatformVerificationPrices(java.util.List<com.aiplatform.foundation.modelruntime.application.platformsupply.dto.verification.PlatformCapabilityVerificationPrice> prices) {
+        platformVerificationPrices = java.util.List.copyOf(prices);
+    }
 
     private boolean platformDeploymentWritesAvailable = true;
 
