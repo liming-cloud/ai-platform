@@ -228,6 +228,17 @@ class ModelConfigurationServiceTest {
     private static final class InMemoryRepository implements ModelConfigurationRepository {
         private ControlledModelCatalogEntry catalog;
         private ModelConfiguration configuration;
+        @Override public void saveWithSupply(TenantId tenantId, ModelConfiguration value) {
+            if (!isSupplyAvailable(tenantId, value.catalogEntryId())) throw new IllegalStateException("合成供应不可用");
+            save(value);
+        }
+        @Override public void activateWithSupply(TenantId tenantId, ModelConfiguration value) {
+            if (!isSupplyAvailable(tenantId, value.catalogEntryId())) throw new IllegalStateException("合成供应不可用");
+            updateConfiguration(value);
+        }
+        @Override public boolean isSupplyAvailable(TenantId tenantId, ControlledModelCatalogEntryId id) {
+            return tenantId.equals(new TenantId(100000000000000001L)) && catalog != null && catalog.id().equals(id);
+        }
 
         @Override
         public Optional<ControlledModelCatalogEntry> findCatalogEntry(ControlledModelCatalogEntryId id) {

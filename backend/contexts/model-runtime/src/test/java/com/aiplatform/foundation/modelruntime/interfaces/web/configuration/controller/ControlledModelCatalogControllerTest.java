@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
 class ControlledModelCatalogControllerTest {
 
     @Test
-    void 建立目录只转发平台部署标识和修订且响应不泄露端点() {
+    void 恢复已发布目录只转发精确平台修订且不泄露端点() {
         var service = mock(ControlledModelCatalogService.class);
         var controller = new ControlledModelCatalogController(service);
         var context = mock(PlatformRequestContext.class);
@@ -41,7 +41,7 @@ class ControlledModelCatalogControllerTest {
         var response = controller.create(context,
                 new ControlledModelCatalogEntryCreateFromDeploymentRequest(Long.toString(deploymentId.value()), 3L));
 
-        assertThat(response.getStatusCode().value()).isEqualTo(201);
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getBody().toString()).doesNotContain("https://example.com/v1");
         verify(service).createFromDeployment(context, deploymentId, 3L);
     }

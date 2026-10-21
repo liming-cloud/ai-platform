@@ -23,7 +23,36 @@ public interface ModelConfigurationRepository {
      */
     default ControlledModelCatalogPage findPublishedCatalogPage(
             long pageNumber, long pageSize) {
-        throw new UnsupportedOperationException("当前模型配置仓储不支持已发布目录分页读取");
+        throw new UnsupportedOperationException("不再允许缺少可信租户的全局供应目录读取");
+    }
+
+    /** 在分页和同范围总数之前过滤当前租户的活动供应授权，不能回退到全局目录。 */
+    default ControlledModelCatalogPage findPublishedCatalogPage(TenantId tenantId, long pageNumber, long pageSize) {
+        throw new UnsupportedOperationException("当前仓储缺少精确租户供应事实");
+    }
+
+    /** 每次新使用检查来源及显式供应授权；旧实现不能证明时失败关闭。 */
+    default boolean isSupplyAvailable(TenantId tenantId, ControlledModelCatalogEntryId catalogEntryId) { return false; }
+
+    /** 在已有短写事务中锁定当前来源、部署、活动租户及精确授权，撤权不能穿越命令提交。 */
+    default void lockSupply(TenantId tenantId, ControlledModelCatalogEntryId catalogEntryId) {
+        throw new UnsupportedOperationException("当前仓储缺少供应提交锁");
+    }
+
+    /** 原子复核供应并保存新配置，不生成额外租户授权。 */
+    default void saveWithSupply(TenantId tenantId, ModelConfiguration configuration) {
+        throw new UnsupportedOperationException("当前仓储缺少受控配置提交");
+    }
+
+    /** 原子复核供应并启用精确配置，失效不得改变原配置状态。 */
+    default void activateWithSupply(TenantId tenantId, ModelConfiguration configuration) {
+        throw new UnsupportedOperationException("当前仓储缺少受控启用提交");
+    }
+
+    /** 只读恢复原子发布已经冻结的唯一目录，禁止独立创建第二份供应。 */
+    default Optional<ControlledModelCatalogEntry> findPublishedByDeployment(
+            com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDeploymentId id, long revision) {
+        return Optional.empty();
     }
 
     void saveCatalogEntry(ControlledModelCatalogEntry entry);

@@ -10,6 +10,28 @@ function reader(overrides = {}) { return { getPlatformModelDeployment: async () 
   listPlatformModelDeployments: async () => ({ items: [deployment], pageNumber: 1, pageSize: 20, totalElements: 1, totalPages: 1, hasNext: false, hasPrevious: false }), ...overrides } as Pick<ControlPlaneClient, "getPlatformModelDeployment" | "listPlatformModelDeployments" | "getPlatformDeploymentPageFacts">; }
 const failure = (status: number) => new ApiRequestError(status, status === 0 ? "NETWORK_UNAVAILABLE" : "SYNTHETIC_ERROR", "合成错误", "trc_synthetic");
 describe("S2 页面事实", () => {
+  it.each([
+    { deploymentRevision: 1 }, { activeGrantCount: 2 }, { activeTenantIds: ["202"] },
+    { activeTenantIds: ["201", "201"] }, { currentSourceAvailable: "true" }, { catalogEntryId: "0" }
+  ])("独立发布事实畸形时不能用计划集合或状态补齐：%o", async invalid => {
+    const published = { ...deployment, status: "PUBLISHED", version: 2,
+      inputs: { parameterSource: "合成资料", residency: "合成区域", candidateDisplayName: "合成候选", plannedTenantIds: ["201"] },
+      supply: { publicationId: "401", deploymentRevision: 2, catalogEntryId: "501", publishedAt: "2026-10-21T00:00:00Z",
+        selectedTenantCount: 1, activeGrantCount: 1, revokedGrantCount: 0, dependentConfigurationCount: 0,
+        activeTenantIds: ["201"], currentSourceAvailable: true, ...invalid } };
+    await expect(readPlatformDeployments(reader({ getPlatformModelDeployment: async () => published }), { id: "123" }))
+      .rejects.toThrow("invalid-deployment-binding");
+  });
+  it("完整发布事实允许全部撤权后的真实零集合，不回退计划", async () => {
+    const published = { ...deployment, status: "PUBLISHED", version: 2,
+      inputs: { parameterSource: "合成资料", residency: "合成区域", candidateDisplayName: "合成候选", plannedTenantIds: ["201"] },
+      supply: { publicationId: "401", deploymentRevision: 2, catalogEntryId: "501", publishedAt: "2026-10-21T00:00:00Z",
+        selectedTenantCount: 1, activeGrantCount: 0, revokedGrantCount: 1, dependentConfigurationCount: 0,
+        activeTenantIds: [], currentSourceAvailable: true } };
+    const result = await readPlatformDeployments(reader({ getPlatformModelDeployment: async () => published }), { id: "123" });
+    expect(result.kind).toBe("ready");
+    expect((result.data as PlatformModelDeploymentSummary).supply?.activeTenantIds).toEqual([]);
+  });
   it("恢复精确部署并拒绝错对象", async () => { expect((await readPlatformDeployments(reader(), { id: "123" })).kind).toBe("ready"); await expect(readPlatformDeployments(reader(), { id: "124" })).rejects.toThrow("invalid-deployment-binding"); });
   it.each([0, 500, 503])("仅辅助可用性错误 %s 进入只读 partial", async status => {
     expect((await readPlatformDeployments(reader({ getPlatformDeploymentPageFacts: async () => { throw failure(status); } }), { id: "123" })).kind).toBe("partial");

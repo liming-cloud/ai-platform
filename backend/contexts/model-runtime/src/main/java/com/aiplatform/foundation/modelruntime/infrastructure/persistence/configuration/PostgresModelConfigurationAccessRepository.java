@@ -19,9 +19,16 @@ public final class PostgresModelConfigurationAccessRepository
         implements ModelConfigurationAccessRepository {
 
     private final ModelConfigurationAccessMapper mapper;
+    private final com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository configurations;
+    private final org.springframework.transaction.support.TransactionTemplate writes;
 
-    public PostgresModelConfigurationAccessRepository(ModelConfigurationAccessMapper mapper) {
+    public PostgresModelConfigurationAccessRepository(ModelConfigurationAccessMapper mapper,
+            com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository configurations,
+            org.springframework.transaction.PlatformTransactionManager transactions) {
         this.mapper = Objects.requireNonNull(mapper, "模型配置授权映射器不能为空");
+        this.configurations = Objects.requireNonNull(configurations);
+        writes = new org.springframework.transaction.support.TransactionTemplate(Objects.requireNonNull(transactions));
+        writes.setTimeout(3);
     }
 
     @Override
@@ -52,7 +59,12 @@ public final class PostgresModelConfigurationAccessRepository
     @Override
     public void save(ModelConfigurationAccessGrant grant) {
         Objects.requireNonNull(grant, "模型配置授权不能为空");
-        mapper.insert(toEntity(grant));
+        writes.executeWithoutResult(status -> {
+            var configuration = configurations.findConfiguration(grant.modelConfigurationId())
+                    .orElseThrow(() -> new IllegalStateException("模型配置不存在"));
+            configurations.lockSupply(grant.granteeTenantId(), configuration.catalogEntryId());
+            mapper.insert(toEntity(grant));
+        });
     }
 
     @Override

@@ -13,6 +13,7 @@
         <result column="context_window" property="contextWindow"/>
         <result column="output_limit" property="outputLimit"/>
         <result column="embedding_dimension" property="embeddingDimension"/>
+        <result column="rerank_candidate_limit" property="rerankCandidateLimit"/>
         <result column="source_platform_deployment_id" property="sourcePlatformDeploymentId"/>
         <result column="source_platform_deployment_revision" property="sourcePlatformDeploymentRevision"/>
         <result column="status" property="status"/>
@@ -20,46 +21,91 @@
         <result column="created_at" property="createdAt"/>
     </resultMap>
 
-    <!--
-        目录条目是部署与连接修订的审计快照；选择器必须在分页前确认来源仍可调用，
-        以免租户看见随后必然被创建或运行时拒绝的模型。
-    -->
-    <sql id="publishedAvailableCatalogPredicate">
-        <![CDATA[
-        catalog.status = 'PUBLISHED'
-        AND catalog.source_platform_deployment_id IS NOT NULL
-        AND catalog.source_platform_deployment_revision IS NOT NULL
-        AND deployment.version = catalog.source_platform_deployment_revision
-        AND deployment.status = 'PUBLISHED'
-        AND deployment.verification_expires_at > CURRENT_TIMESTAMP
-        AND connection.version = deployment.platform_provider_connection_revision
-        AND connection.status = 'VERIFIED'
-        ]]>
-    </sql>
-
+    <!-- 同一授权与来源谓词用于分页、精确选择和运行前复核，不能以计划集合或旧全局目录替代。 -->
     <sql id="publishedAvailableCatalogFrom">
-        <![CDATA[
+        <bind name="mappingVersion" value="@com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformModelCandidateSource@CURRENT_MAPPING_VERSION"/>
+        <bind name="mappingDigest" value="@com.aiplatform.foundation.modelruntime.domain.platformsupply.model.discovery.PlatformModelCandidateSource@CURRENT_MAPPING_DIGEST"/>
         FROM model_runtime.controlled_model_catalog_entry catalog
-        INNER JOIN model_runtime.platform_model_deployment deployment
-            ON deployment.id = catalog.source_platform_deployment_id
-        INNER JOIN model_runtime.platform_provider_connection connection
-            ON connection.id = deployment.platform_provider_connection_id
-        WHERE
-        ]]>
-        <include refid="publishedAvailableCatalogPredicate"/>
+        JOIN model_runtime.platform_model_deployment deployment ON deployment.id = catalog.source_platform_deployment_id
+        JOIN model_runtime.platform_model_deployment_publication publication ON publication.catalog_entry_id = catalog.id
+            AND publication.deployment_id = deployment.id AND publication.deployment_revision = deployment.version
+        JOIN model_runtime.platform_provider_connection connection ON connection.id = deployment.platform_provider_connection_id
+        JOIN model_runtime.platform_model_capability_verification verification ON verification.id = publication.verification_id
+            AND verification.id = deployment.last_verification_id
+        JOIN model_runtime.platform_model_deployment_verification_audit audit ON audit.verification_id = verification.id AND audit.succeeded = TRUE
+        JOIN model_runtime.platform_capability_verification_reservation reservation ON reservation.id = audit.reservation_id
+        WHERE catalog.status = 'PUBLISHED' AND deployment.status = 'PUBLISHED'
+          AND deployment.version = catalog.source_platform_deployment_revision
+          AND deployment.verification_expires_at &gt; CURRENT_TIMESTAMP
+          AND connection.scope = 'PLATFORM' AND connection.status = 'VERIFIED'
+          AND connection.version = deployment.platform_provider_connection_revision
+          AND connection.last_probe_succeeded = TRUE AND connection.last_probed_at &lt;= CURRENT_TIMESTAMP
+          AND connection.last_probed_at &gt; CURRENT_TIMESTAMP - INTERVAL '24 hours'
+          AND EXISTS (SELECT 1 FROM model_runtime.platform_provider_connection_publication connection_publication
+              WHERE connection_publication.connection_id = connection.id AND connection_publication.connection_revision = connection.version)
+          AND catalog.provider_kind = connection.provider_kind AND catalog.endpoint = connection.endpoint
+          AND catalog.model_code = deployment.model_code AND catalog.model_type = deployment.model_type
+          AND catalog.context_window = deployment.context_window
+          AND catalog.output_limit IS NOT DISTINCT FROM deployment.output_limit
+          AND catalog.embedding_dimension IS NOT DISTINCT FROM deployment.embedding_dimension
+          AND catalog.rerank_candidate_limit IS NOT DISTINCT FROM deployment.rerank_candidate_limit
+          AND verification.succeeded = TRUE AND verification.result_code = 'S2_PASSED'
+          AND verification.expires_at = deployment.verification_expires_at
+          AND reservation.status = 'COMPLETED' AND reservation.outcome = 'PASSED' AND reservation.attempted_requests = 3
+          AND reservation.sample_version = 's2-capability-safety-v1'
+          AND reservation.passed_sample_digests = reservation.expected_sample_digests
+          AND publication.inputs_digest = reservation.inputs_digest
+          AND EXISTS (SELECT 1 FROM (
+              SELECT DISTINCT ON (platform_provider_connection_id, platform_provider_connection_revision)
+                  id, platform_provider_connection_id, platform_provider_connection_revision, discovered_at, expires_at
+              FROM model_runtime.platform_provider_model_discovery WHERE succeeded = TRUE
+              ORDER BY platform_provider_connection_id, platform_provider_connection_revision, discovered_at DESC, id DESC
+            ) discovery
+            JOIN model_runtime.platform_discovered_model candidate ON candidate.discovery_id = discovery.id
+            WHERE discovery.platform_provider_connection_id = connection.id
+              AND discovery.platform_provider_connection_revision = connection.version
+              AND discovery.id = deployment.candidate_discovery_id AND discovery.expires_at &gt; CURRENT_TIMESTAMP
+              AND discovery.discovered_at &lt;= CURRENT_TIMESTAMP AND candidate.model_code = deployment.model_code
+              AND (candidate.source_profile IS DISTINCT FROM 'SILICONFLOW_RERANK_MODELS_API'
+                   OR (candidate.mapping_version = #{mappingVersion} AND candidate.mapping_digest = #{mappingDigest})))
     </sql>
-
-    <select id="selectPublishedAvailablePage" resultMap="controlledModelCatalogEntryEntity">
-        SELECT catalog.*
-        <include refid="publishedAvailableCatalogFrom"/>
-        <![CDATA[
+    <sql id="tenantSupplyPredicate">
+        AND EXISTS (SELECT 1 FROM model_runtime.platform_model_supply_grant supply_grant
+            WHERE supply_grant.publication_id = publication.id AND supply_grant.tenant_id = #{tenantId}
+              AND supply_grant.status = 'ACTIVE')
+    </sql>
+    <select id="selectPublishedAvailablePage" resultMap="controlledModelCatalogEntryEntity" useCache="false" flushCache="true">
+        SELECT catalog.* <include refid="publishedAvailableCatalogFrom"/>
+        <include refid="tenantSupplyPredicate"/>
         ORDER BY catalog.created_at DESC, catalog.id DESC
-        LIMIT #{limit} OFFSET #{offset}
-        ]]>
     </select>
-
-    <select id="countPublishedAvailable" resultType="long">
-        SELECT COUNT(*)
-        <include refid="publishedAvailableCatalogFrom"/>
+    <select id="isSupplyAvailable" resultType="boolean" useCache="false" flushCache="true">
+        SELECT EXISTS (SELECT catalog.id <include refid="publishedAvailableCatalogFrom"/>
+            <include refid="tenantSupplyPredicate"/> AND catalog.id = #{entryId})
+    </select>
+    <select id="selectPublishedByDeployment" resultMap="controlledModelCatalogEntryEntity" useCache="false" flushCache="true">
+        SELECT catalog.* <include refid="publishedAvailableCatalogFrom"/>
+          AND deployment.id = #{deploymentId} AND deployment.version = #{revision}
+    </select>
+    <select id="lockSupplySource" resultType="long" useCache="false" flushCache="true">
+        SELECT connection.id FROM model_runtime.controlled_model_catalog_entry catalog
+        JOIN model_runtime.platform_model_deployment deployment ON deployment.id = catalog.source_platform_deployment_id
+        JOIN model_runtime.platform_provider_connection connection ON connection.id = deployment.platform_provider_connection_id
+        WHERE catalog.id = #{entryId} AND connection.scope = 'PLATFORM'
+          AND connection.version = deployment.platform_provider_connection_revision AND connection.status = 'VERIFIED'
+        FOR SHARE OF connection
+    </select>
+    <select id="lockSupplyDeployment" resultType="long" useCache="false" flushCache="true">
+        SELECT deployment.id FROM model_runtime.platform_model_deployment deployment
+        JOIN model_runtime.controlled_model_catalog_entry catalog ON catalog.source_platform_deployment_id = deployment.id
+        WHERE catalog.id = #{entryId} AND deployment.status = 'PUBLISHED'
+          AND deployment.version = catalog.source_platform_deployment_revision FOR SHARE OF deployment
+    </select>
+    <select id="lockSupplyGrant" resultType="long" useCache="false" flushCache="true">
+        SELECT g.publication_id FROM model_runtime.platform_model_supply_grant g
+        WHERE g.tenant_id = #{tenantId} AND g.status = 'ACTIVE'
+          AND EXISTS (SELECT catalog.id <include refid="publishedAvailableCatalogFrom"/>
+              AND catalog.id = #{entryId} AND publication.id = g.publication_id)
+        FOR SHARE OF g
     </select>
 </mapper>

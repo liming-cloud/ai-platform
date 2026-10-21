@@ -9,7 +9,12 @@ import java.util.Objects;
 public record ModelRuntimeCapabilities(
         int contextWindow,
         Integer outputLimit,
-        Integer embeddingDimension) {
+        Integer embeddingDimension,
+        Integer rerankCandidateLimit) {
+
+    public ModelRuntimeCapabilities(int contextWindow, Integer outputLimit, Integer embeddingDimension) {
+        this(contextWindow, outputLimit, embeddingDimension, null);
+    }
 
     public ModelRuntimeCapabilities {
         if (contextWindow < 1) {
@@ -31,6 +36,12 @@ public record ModelRuntimeCapabilities(
         return new ModelRuntimeCapabilities(contextWindow, null, embeddingDimension);
     }
 
+    /** 重排候选上限来自独立能力验证，不能填入向量维度或对话输出。 */
+    public static ModelRuntimeCapabilities rerank(int contextWindow, int candidateLimit) {
+        if (candidateLimit < 1) throw new IllegalArgumentException("重排候选上限必须大于零");
+        return new ModelRuntimeCapabilities(contextWindow, null, null, candidateLimit);
+    }
+
     /**
      * 验证能力快照与目录模型类型一致。
      *
@@ -42,15 +53,17 @@ public record ModelRuntimeCapabilities(
                 && outputLimit != null
                 && outputLimit > 0
                 && outputLimit <= contextWindow
-                && embeddingDimension == null) {
+                && embeddingDimension == null && rerankCandidateLimit == null) {
             return;
         }
         if (modelType == ModelType.EMBEDDING
                 && embeddingDimension != null
                 && embeddingDimension > 0
-                && outputLimit == null) {
+                && outputLimit == null && rerankCandidateLimit == null) {
             return;
         }
+        if (modelType == ModelType.RERANK && rerankCandidateLimit != null && rerankCandidateLimit > 0
+                && outputLimit == null && embeddingDimension == null) return;
         throw new IllegalArgumentException("模型能力与模型类型不一致");
     }
 }

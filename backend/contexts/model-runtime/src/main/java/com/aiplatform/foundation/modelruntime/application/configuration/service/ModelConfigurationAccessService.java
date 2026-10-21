@@ -50,6 +50,8 @@ public final class ModelConfigurationAccessService {
         if (configuration.scope() == ModelConfigurationScope.PERSONAL) {
             throw new ModelConfigurationNotFoundException();
         }
+        if (!configurations.isSupplyAvailable(Objects.requireNonNull(granteeTenantId), configuration.catalogEntryId()))
+            throw new ModelConfigurationNotFoundException();
         var grant = ModelConfigurationAccessGrant.grant(
                 new ModelConfigurationAccessGrantId(identifiers.nextId()),
                 configuration.id(),
@@ -92,7 +94,8 @@ public final class ModelConfigurationAccessService {
         Objects.requireNonNull(tenantId, "租户标识不能为空");
         Objects.requireNonNull(membershipId, "成员标识不能为空");
         Objects.requireNonNull(configuration, "模型配置不能为空");
-        if (configuration.status() != ModelConfigurationStatus.ACTIVE) {
+        if (configuration.status() != ModelConfigurationStatus.ACTIVE
+                || !configurations.isSupplyAvailable(tenantId, configuration.catalogEntryId())) {
             return false;
         }
         return switch (configuration.scope()) {

@@ -436,6 +436,14 @@ export interface PlatformModelDeploymentSummary {
   connectionDisplayName: string;
   inputs: PlatformDeploymentInputs | null;
   verifiedAt: string | null;
+  supply?: PlatformSupplyFacts | null;
+}
+
+/** 独立发布及活动供应关系，不将草稿选择或活动关系视为来源、租户和配置全部可用。 */
+export interface PlatformSupplyFacts {
+  publicationId: string; deploymentRevision: number; catalogEntryId: string; publishedAt: string;
+  selectedTenantCount: number; activeGrantCount: number; revokedGrantCount: number; dependentConfigurationCount: number;
+  activeTenantIds: string[]; currentSourceAvailable: boolean;
 }
 
 /** 平台管理员从已发现候选创建部署时可提交的最小业务字段。 */

@@ -151,6 +151,9 @@ class UsableModelConfigurationLookupServiceTest {
         @Override public Optional<ControlledModelCatalogEntry> findCatalogEntry(ControlledModelCatalogEntryId id) {
             return catalog.id().equals(id) ? Optional.of(catalog) : Optional.empty();
         }
+        @Override public boolean isSupplyAvailable(TenantId tenantId, ControlledModelCatalogEntryId id) {
+            return tenantId.equals(TENANT_ID) && catalog.id().equals(id);
+        }
         @Override public void saveCatalogEntry(ControlledModelCatalogEntry entry) { }
         @Override public void updateCatalogEntry(ControlledModelCatalogEntry entry) { }
         @Override public Optional<ModelConfiguration> findConfiguration(ModelConfigurationId id) {

@@ -14,6 +14,7 @@ public record ControlledModelCatalogEntryView(
         int contextWindow,
         Integer outputLimit,
         Integer embeddingDimension,
+        Integer rerankCandidateLimit,
         String status,
         long version,
         Instant createdAt) {
@@ -22,7 +23,7 @@ public record ControlledModelCatalogEntryView(
         return new ControlledModelCatalogEntryView(
                 entry.id().toString(), entry.providerKind().name(), entry.modelCode(),
                 entry.modelType().name(), entry.capabilities().contextWindow(),
-                entry.capabilities().outputLimit(), entry.capabilities().embeddingDimension(),
+                entry.capabilities().outputLimit(), entry.capabilities().embeddingDimension(), entry.capabilities().rerankCandidateLimit(),
                 entry.status().name(), entry.version(), entry.createdAt());
     }
 }

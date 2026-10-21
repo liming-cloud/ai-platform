@@ -7,4 +7,7 @@ import java.util.Set;
 public interface TenantActivityFacts {
     /** 在调用方短事务内按固定顺序锁定活动事实；任一目标失效则拒绝整个声明。 */
     void requireActive(Set<Long> tenantIds);
+
+    /** 无锁读取当前活动事实；旧实现不能证明时返回不可用，不在只读事务申请写入锁。 */
+    default boolean isActive(long tenantId) { return false; }
 }

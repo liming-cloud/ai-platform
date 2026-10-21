@@ -5,7 +5,7 @@ import { ApiRequestError, type ControlPlaneClient, type PageResult, type Platfor
 import { formatConsoleRoute, type ConsoleRoute } from "../../session/console-route";
 import { PlatformConnectionPagination } from "./PlatformConnectionPagination";
 import { PlatformModelDeploymentForm, typeLabel } from "./PlatformModelDeploymentForm";
-import { readPlatformDeployments, settleDeploymentReads } from "./platform-deployment-read";
+import { displayedSupplyTenantIds, readPlatformDeployments, settleDeploymentReads } from "./platform-deployment-read";
 import "./platform-model-connections.css";
 import "./platform-model-deployments.css";
 
@@ -47,9 +47,9 @@ function PlatformDeploymentPage({ client, route, sessionRevision, onRouteChange 
         const deployment = read.data as PlatformModelDeploymentSummary;
         if (deployment.inputs) {
           const names: string[] = [];
-          // 有界分批读取明确选择的租户名称，不遍历整个租户目录，也不把 ID 作为页面名称。
-          const ids = deployment.inputs.plannedTenantIds;
-          for (let start = 0; start < ids.length; start += 10) {
+          // 发布前读取计划，发布后只读取活动授权；未知不能回退旧计划或猜测租户名称。
+          const ids = displayedSupplyTenantIds(deployment);
+          for (let start = 0; ids && start < ids.length; start += 10) {
             const batch = await settleDeploymentReads(ids.slice(start, start + 10).map(id => client.getTenantLifecycle(id)));
             if (token !== owner.current) return;
             for (const item of batch) if (item.status === "rejected" && item.reason instanceof ApiRequestError
@@ -64,7 +64,7 @@ function PlatformDeploymentPage({ client, route, sessionRevision, onRouteChange 
               else throw item.reason;
             }
           }
-          if (names.length === ids.length) setTenantNames(names);
+          if (ids && names.length === ids.length) setTenantNames(names);
         }
       } else {
         const page = read.data as PageResult<PlatformModelDeploymentSummary>;
@@ -133,13 +133,13 @@ function PlatformDeploymentPage({ client, route, sessionRevision, onRouteChange 
       {page ? page.items.length === 0 ? <ReadState kind="empty" detail={false} onRetry={() => void load()} /> : <div className="platform-connection-table" role="region" aria-label="平台模型部署目录">
         <table><thead><tr>{["部署", "能力", "授权范围", "状态", "操作"].map(label => <th key={label} scope="col">{label}</th>)}</tr></thead><tbody>{page.items.map(item => <tr key={item.id}>
           <td data-label="部署"><strong>{item.displayName}</strong><small className="deployment-residency">{item.inputs?.residency ?? "驻留范围暂未取得"}</small></td>
-          <td data-label="能力">{typeLabel(item.modelType)}</td><td data-label="授权范围">{state === "partial" || !item.inputs ? "暂未取得" : `${item.status === "PUBLISHED" ? "" : "拟授权 "}${item.inputs.plannedTenantIds.length} 个租户`}</td>
+          <td data-label="能力">{typeLabel(item.modelType)}</td><td data-label="授权范围">{state === "partial" || !displayedSupplyTenantIds(item) ? "暂未取得" : `${item.status === "DRAFT" || item.status === "VERIFIED" ? "拟授权 " : ""}${displayedSupplyTenantIds(item)!.length} 个租户`}</td>
           <td data-label="状态"><DeploymentStatus deployment={item} /></td><td data-label="操作"><Button appearance="subtle" aria-label={`查看${item.displayName}`} onClick={() => onRouteChange({ navigationId: "platform-model-supply", task: "deployment-detail", deploymentId: item.id, directoryPage: page.pageNumber, pageSize: directory.pageSize })}>查看</Button></td>
         </tr>)}</tbody></table><PlatformConnectionPagination label="平台模型部署分页" total={page.totalElements} page={page.pageNumber} size={directory.pageSize} disabled={busy}
           onChange={(deploymentPage, pageSize) => onRouteChange({ ...directory, deploymentPage, pageSize })} /></div> : null}
       {deployment ? <div className="platform-connection-detail"><div><section className="platform-connection-section platform-connection-section--facts"><div className="platform-connection-section__heading"><div><span className="platform-connection-kicker">平台部署</span><h2>{deployment.displayName}</h2></div><DeploymentStatus deployment={deployment} /></div>
         <dl className="platform-connection-descriptions"><Fact label="连接" value={deployment.connectionDisplayName} /><Fact label="能力" value={typeLabel(deployment.modelType)} />
-          <Fact label="驻留范围" value={deployment.inputs?.residency ?? "暂未取得"} /><Fact label={deployment.status === "PUBLISHED" ? "已授权租户" : "拟授权租户"} value={state === "partial" ? "暂未取得" : tenantNames?.join("、") ?? "暂未取得"} />
+          <Fact label="驻留范围" value={deployment.inputs?.residency ?? "暂未取得"} /><Fact label={deployment.status === "DRAFT" || deployment.status === "VERIFIED" ? "拟授权租户" : "已授权租户"} value={state === "partial" || !tenantNames ? "暂未取得" : tenantNames.length ? tenantNames.join("、") : "0 个租户"} />
           <Fact label="声明上下文" value={`${deployment.contextWindow} Token`} />{deployment.outputLimit !== null ? <Fact label="声明输出上限" value={`${deployment.outputLimit} Token`} /> : null}
           {deployment.embeddingDimension !== null ? <Fact label="声明向量维度" value={String(deployment.embeddingDimension)} /> : null}
           {deployment.inputs?.rerankCandidateLimit != null ? <Fact label="声明候选上限" value={String(deployment.inputs.rerankCandidateLimit)} /> : null}

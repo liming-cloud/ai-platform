@@ -10,6 +10,11 @@
         WHERE tenant_id = #{tenantId} AND status = 'ACTIVE' FOR SHARE
     </select>
 
+    <select id="isActive" resultType="boolean" useCache="false" flushCache="true">
+        SELECT EXISTS (SELECT 1 FROM organization_access.tenant_lifecycle
+            WHERE tenant_id = #{tenantId} AND status = 'ACTIVE')
+    </select>
+
     <select id="selectPage"
             resultType="com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.projection.TenantLifecycleSummaryRow">
         SELECT lifecycle.tenant_id,

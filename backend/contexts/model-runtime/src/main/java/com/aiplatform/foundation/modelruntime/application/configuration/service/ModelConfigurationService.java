@@ -71,6 +71,8 @@ public final class ModelConfigurationService {
         if (catalog.status() != ControlledModelCatalogEntryStatus.PUBLISHED) {
             throw new IllegalStateException("只能选择已发布受控模型目录条目");
         }
+        if (!repository.isSupplyAvailable(context.tenantId(), catalogEntryId))
+            throw new ModelConfigurationNotFoundException();
         requireCurrentPlatformSource(catalog);
         return switch (scope) {
             case PLATFORM -> createPlatform(context, displayName, catalogEntryId);
@@ -100,9 +102,11 @@ public final class ModelConfigurationService {
         var catalog = repository.findCatalogEntry(configuration.catalogEntryId())
                 .filter(value -> value.status() == ControlledModelCatalogEntryStatus.PUBLISHED)
                 .orElseThrow(ModelConfigurationNotFoundException::new);
+        if (!repository.isSupplyAvailable(context.tenantId(), configuration.catalogEntryId()))
+            throw new ModelConfigurationNotFoundException();
         requireCurrentPlatformSource(catalog);
         var active = configuration.activate();
-        repository.updateConfiguration(active);
+        repository.activateWithSupply(context.tenantId(), active);
         return active;
     }
 
@@ -140,7 +144,7 @@ public final class ModelConfigurationService {
                 null,
                 displayName,
                 catalogEntryId,
-                clock.instant()));
+                clock.instant()), context.tenantId());
     }
 
     private ModelConfiguration createTenant(
@@ -155,7 +159,7 @@ public final class ModelConfigurationService {
                 null,
                 displayName,
                 catalogEntryId,
-                clock.instant()));
+                clock.instant()), context.tenantId());
     }
 
     private ModelConfiguration createPersonal(
@@ -170,11 +174,11 @@ public final class ModelConfigurationService {
                 new ModelConfigurationOwnerId(context.membershipId().value()),
                 displayName,
                 catalogEntryId,
-                clock.instant()));
+                clock.instant()), context.tenantId());
     }
 
-    private ModelConfiguration save(ModelConfiguration configuration) {
-        repository.save(configuration);
+    private ModelConfiguration save(ModelConfiguration configuration, com.aiplatform.foundation.shared.kernel.tenant.TenantId tenantId) {
+        repository.saveWithSupply(tenantId, configuration);
         return configuration;
     }
 

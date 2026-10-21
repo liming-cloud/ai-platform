@@ -15,7 +15,18 @@ public record PlatformModelDeploymentView(
         Integer outputLimit, Integer embeddingDimension, Instant verificationExpiresAt, String status,
         ModelDeploymentAvailability availability, ModelDeploymentAvailabilityNextStep nextStep,
         long version, Instant createdAt, String connectionDisplayName,
+        PlatformModelDeploymentInputsView inputs, Instant verifiedAt,
+        com.aiplatform.foundation.modelruntime.application.platformsupply.dto.publication.PlatformSupplyFacts supply) {
+    public PlatformModelDeploymentView(
+        String id, String providerConnectionId, long providerConnectionRevision, String modelCode,
+        String displayName, String modelType, Set<ModelCapability> capabilities, int contextWindow,
+        Integer outputLimit, Integer embeddingDimension, Instant verificationExpiresAt, String status,
+        ModelDeploymentAvailability availability, ModelDeploymentAvailabilityNextStep nextStep,
+        long version, Instant createdAt, String connectionDisplayName,
         PlatformModelDeploymentInputsView inputs, Instant verifiedAt) {
+        this(id, providerConnectionId, providerConnectionRevision, modelCode, displayName, modelType, capabilities, contextWindow, outputLimit, embeddingDimension, verificationExpiresAt, status, availability, nextStep, version, createdAt, connectionDisplayName, inputs, verifiedAt, null);
+    }
+
     public PlatformModelDeploymentView {
         id = Objects.requireNonNull(id, "平台模型部署标识不能为空");
         providerConnectionId = Objects.requireNonNull(providerConnectionId, "平台供应商连接标识不能为空");

@@ -43,6 +43,19 @@ import org.junit.jupiter.api.Test;
 class ControlledModelCatalogServiceTest {
 
     @Test
+    void 缺少按租户供应事实的旧仓储不能退回全局目录() {
+        var repository = new InMemoryRepository();
+        repository.saveCatalogEntry(ControlledModelCatalogEntry.create(
+                new ControlledModelCatalogEntryId(3001L), ProviderKind.OPENAI_COMPATIBLE,
+                URI.create("https://example.com/v1"), "test-chat-model", ModelType.CHAT,
+                ModelRuntimeCapabilities.chat(32_768, 4_096), Instant.parse("2026-07-28T00:00:00Z")).publish());
+        var service = new ControlledModelCatalogService(repository);
+
+        assertThrows(UnsupportedOperationException.class,
+                () -> service.listPublished(context("model:write"), new PageQuery(1, 20)));
+    }
+
+    @Test
     void 目录服务不得暴露自由端点创建或旧租户上下文发布入口() {
         var legacyEntrypoints = Arrays.stream(ControlledModelCatalogService.class.getMethods())
                 .filter(method -> method.getName().equals("create")
@@ -55,64 +68,39 @@ class ControlledModelCatalogServiceTest {
     }
 
     @Test
-    void 目录只能从平台会话选定的已发布部署建立冻结快照() {
-        var repository = new InMemoryRepository();
-        var deployments = mock(PlatformModelDeploymentRepository.class);
-        var connections = mock(PlatformProviderConnectionRepository.class);
-        var deployment = mock(com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDeployment.class);
-        var connection = mock(PlatformProviderConnection.class);
+    void 旧目录写入口只能恢复已经原子发布的同一快照() {
+        var repository = mock(ModelConfigurationRepository.class);
         var deploymentId = new PlatformModelDeploymentId(620000000000000001L);
-        var connectionId = new PlatformProviderConnectionId(610000000000000001L);
-        when(deployment.version()).thenReturn(3L);
-        when(deployment.id()).thenReturn(deploymentId);
-        when(deployment.status()).thenReturn(PlatformModelDeploymentStatus.PUBLISHED);
-        when(deployment.verificationExpiresAt()).thenReturn(Instant.parse("2026-08-14T00:00:00Z"));
-        when(deployment.providerConnectionId()).thenReturn(connectionId);
-        when(deployment.providerConnectionRevision()).thenReturn(5L);
-        when(deployment.modelCode()).thenReturn("test-chat-model");
-        when(deployment.modelType()).thenReturn(ModelType.CHAT);
-        when(deployment.contextWindow()).thenReturn(32_768);
-        when(deployment.outputLimit()).thenReturn(4_096);
-        when(connection.version()).thenReturn(5L);
-        when(connection.status()).thenReturn(ProviderConnectionStatus.VERIFIED);
-        when(connection.providerKind()).thenReturn(ProviderKind.OPENAI_COMPATIBLE);
-        when(connection.endpoint()).thenReturn(URI.create("https://example.com/v1"));
-        when(deployments.findById(deploymentId)).thenReturn(Optional.of(deployment));
-        when(connections.findById(connectionId)).thenReturn(Optional.of(connection));
-        var service = new ControlledModelCatalogService(
-                repository,
-                () -> 3001L,
-                Clock.fixed(Instant.parse("2026-08-13T00:00:00Z"), ZoneOffset.UTC),
-                deployments, connections);
+        var entry = ControlledModelCatalogEntry.createFromPlatformDeployment(new ControlledModelCatalogEntryId(3001L),
+                deploymentId, 3L, ProviderKind.OPENAI_COMPATIBLE, URI.create("https://example.com/v1"),
+                "test-chat-model", ModelType.CHAT, ModelRuntimeCapabilities.chat(32_768, 4096), Instant.now()).publish();
+        when(repository.findPublishedByDeployment(deploymentId, 3L)).thenReturn(Optional.of(entry));
+        when(repository.findCatalogEntry(entry.id())).thenReturn(Optional.of(entry));
+        var service = new ControlledModelCatalogService(repository);
 
-        var entry = service.createFromDeployment(platformContext(), deploymentId, 3L);
-
-        assertEquals("test-chat-model", entry.modelCode());
-        assertEquals(4_096, entry.capabilities().outputLimit());
-        assertEquals(deploymentId, entry.sourceDeploymentId());
-        assertEquals(3L, entry.sourceDeploymentRevision());
+        org.junit.jupiter.api.Assertions.assertSame(entry, service.createFromDeployment(platformContext(), deploymentId, 3L));
+        org.junit.jupiter.api.Assertions.assertSame(entry, service.publish(platformContext(), entry.id()));
+        org.mockito.Mockito.verify(repository, org.mockito.Mockito.never()).saveCatalogEntry(org.mockito.ArgumentMatchers.any());
+        org.mockito.Mockito.verify(repository, org.mockito.Mockito.never()).updateCatalogEntry(org.mockito.ArgumentMatchers.any());
+        assertThrows(com.aiplatform.foundation.modelruntime.application.configuration.exception.ModelConfigurationNotFoundException.class,
+                () -> service.createFromDeployment(platformContext(), deploymentId, 2L));
     }
 
     @Test
-    void 已发布目录可供有模型配置权限的成员分页选择且不返回草稿() {
-        var repository = new InMemoryRepository();
-        var service = new ControlledModelCatalogService(
-                repository,
-                () -> 3001L,
-                Clock.fixed(Instant.parse("2026-07-28T00:00:00Z"), ZoneOffset.UTC));
-        var published = ControlledModelCatalogEntry.create(
-                new ControlledModelCatalogEntryId(3001L), ProviderKind.OPENAI_COMPATIBLE,
-                URI.create("https://example.com/v1"), "test-chat-model", ModelType.CHAT,
-                ModelRuntimeCapabilities.chat(32_768, 4_096), Instant.parse("2026-07-28T00:00:00Z"))
-                .publish();
-        repository.saveCatalogEntry(published);
+    void 已发布目录仅查询可信会话的精确租户范围() {
+        var repository = mock(ModelConfigurationRepository.class);
+        var published = ControlledModelCatalogEntry.create(new ControlledModelCatalogEntryId(3001L),
+                ProviderKind.OPENAI_COMPATIBLE, URI.create("https://example.com/v1"), "test-chat-model", ModelType.CHAT,
+                ModelRuntimeCapabilities.chat(32_768, 4096), Instant.now()).publish();
+        var context = context("model:write");
+        when(repository.findPublishedCatalogPage(context.tenantId(), 1, 20)).thenReturn(
+                new ControlledModelCatalogPage(java.util.List.of(published), 1, 20, 1));
 
-        var page = service.listPublished(
-                context("model:write"), new PageQuery(1, 20));
-
+        var page = new ControlledModelCatalogService(repository).listPublished(context, new PageQuery(1, 20));
         assertEquals(1, page.items().size());
-        assertEquals("PUBLISHED", page.items().getFirst().status().name());
         assertEquals(published.id(), page.items().getFirst().id());
+        org.mockito.Mockito.verify(repository).findPublishedCatalogPage(context.tenantId(), 1, 20);
+        org.mockito.Mockito.verify(repository, org.mockito.Mockito.never()).findPublishedCatalogPage(1, 20);
     }
 
     private static TrustedRequestContext context(String permission) {

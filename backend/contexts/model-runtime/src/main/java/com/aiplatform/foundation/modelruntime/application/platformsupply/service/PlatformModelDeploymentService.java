@@ -43,12 +43,14 @@ public final class PlatformModelDeploymentService {
     private final Clock clock;
     private final EntityIdGenerator identifiers;
     private final boolean writesAvailable;
+    private final com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.publication.PlatformModelSupplyPublicationStore supply;
 
     public PlatformModelDeploymentService(
             PlatformModelDeploymentRepository deployments, PlatformProviderConnectionRepository connections,
             PlatformProviderConnectionPublicationRepository publications,
             PlatformProviderModelDiscoveryLookup discoveries, PlatformModelProbeProviderService probeProvider,
-            Clock clock, EntityIdGenerator identifiers, boolean writesAvailable) {
+            Clock clock, EntityIdGenerator identifiers, boolean writesAvailable,
+            com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.publication.PlatformModelSupplyPublicationStore supply) {
         this.deployments = Objects.requireNonNull(deployments, "平台模型部署仓储不能为空");
         this.connections = Objects.requireNonNull(connections, "平台供应商连接仓储不能为空");
         this.publications = Objects.requireNonNull(publications, "平台连接发布仓储不能为空");
@@ -57,6 +59,7 @@ public final class PlatformModelDeploymentService {
         this.clock = Objects.requireNonNull(clock, "时钟不能为空");
         this.identifiers = Objects.requireNonNull(identifiers, "标识生成器不能为空");
         this.writesAvailable = writesAvailable;
+        this.supply = Objects.requireNonNull(supply, "供应原子提交不可缺失");
     }
 
     /**
@@ -157,8 +160,8 @@ public final class PlatformModelDeploymentService {
         requireWrites();
         var deployment = load(command.modelDeploymentId(), command.expectedVersion());
         loadFrozenConnection(deployment);
-        throw new com.aiplatform.foundation.shared.kernel.error.ApplicationException(
-                com.aiplatform.foundation.modelruntime.domain.common.error.ModelRuntimeErrorCode.PLATFORM_DEPLOYMENT_CONTRACT_PENDING);
+        var published = supply.publish(command.context(), deployment, command.sessionActive());
+        return toView(published, connections.findById(published.providerConnectionId()).orElse(null), clock.instant());
     }
 
     /** 停用部署以阻断新目录发布和运行时调用，保留既有验证审计。 */
@@ -166,11 +169,24 @@ public final class PlatformModelDeploymentService {
         Objects.requireNonNull(command, "平台模型部署停用命令不能为空");
         requirePermission(command.context());
         var deployment = load(command.modelDeploymentId(), command.expectedVersion());
-        var disabled = deployment.disable();
-        if (disabled != deployment && !deployments.update(disabled, command.expectedVersion())) {
-            throw new IllegalStateException("平台模型部署修订已变化");
-        }
+        var disabled = supply.disable(command.context(), deployment, command.sessionActive());
         return toView(disabled, null, clock.instant());
+    }
+
+    /** 计划选择与活动授权分别返回，只有独立发布才具有正式供应事实。 */
+    public java.util.Optional<com.aiplatform.foundation.modelruntime.application.platformsupply.dto.publication.PlatformSupplyFacts> supplyFacts(
+            PlatformRequestContext context, String id) {
+        requirePermission(context);
+        var deploymentId = PlatformModelDeploymentId.parse(id);
+        deployments.findById(deploymentId).orElseThrow(com.aiplatform.foundation.modelruntime.application.deployment.exception.ModelDeploymentNotFoundException::new);
+        return supply.facts(deploymentId);
+    }
+
+    /** 精确撤销一个租户供应关系；安全收紧不受新增写入暂停限制。 */
+    public void revokeSupply(PlatformRequestContext context, String id, long tenantId, long expectedVersion,
+            long expectedGrantVersion, java.util.function.BooleanSupplier session) {
+        requirePermission(context);
+        supply.revoke(context, PlatformModelDeploymentId.parse(id), tenantId, expectedVersion, expectedGrantVersion, session);
     }
 
     private PlatformModelDeployment load(String id, long expectedVersion) {
@@ -211,14 +227,18 @@ public final class PlatformModelDeploymentService {
 
     private PlatformModelDeploymentView toView(PlatformModelDeployment deployment,
             PlatformProviderConnection connection, java.time.Instant now) {
+        var supplyFacts = supply.facts(deployment.id()).orElse(null);
         var availability = availability(deployment, connection, now);
+        if (deployment.status() == PlatformModelDeploymentStatus.PUBLISHED
+                && (supplyFacts == null || !supplyFacts.currentSourceAvailable()))
+            availability = new Availability(ModelDeploymentAvailability.UNAVAILABLE, ModelDeploymentAvailabilityNextStep.NONE);
         return new PlatformModelDeploymentView(deployment.id().toString(), deployment.providerConnectionId().toString(),
                 deployment.providerConnectionRevision(), deployment.modelCode(), deployment.displayName(), deployment.modelType().name(),
                 deployment.capabilities(), deployment.contextWindow(), deployment.outputLimit(), deployment.embeddingDimension(),
                 deployment.verificationExpiresAt(), deployment.status().name(), availability.status(), availability.nextStep(),
                 deployment.version(), deployment.createdAt(), connection == null ? "来源连接暂未取得" : connection.displayName(),
                 com.aiplatform.foundation.modelruntime.application.platformsupply.dto.deployment.PlatformModelDeploymentInputsView.from(deployment.inputs()),
-                deployment.lastVerificationId() == null ? null : deployments.lastVerifiedAt(deployment.id()).orElse(null));
+                deployment.lastVerificationId() == null ? null : deployments.lastVerifiedAt(deployment.id()).orElse(null), supplyFacts);
     }
 
     private static Availability availability(PlatformModelDeployment deployment, PlatformProviderConnection connection,

@@ -11,7 +11,6 @@ import com.aiplatform.foundation.security.identity.TrustedRequestContext;
 import com.aiplatform.foundation.shared.contract.paging.PageQuery;
 import com.aiplatform.foundation.shared.contract.paging.PageResult;
 import java.util.Objects;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -38,7 +37,7 @@ public class ControlledModelCatalogController {
     public ResponseEntity<ControlledModelCatalogEntryView> create(
             PlatformRequestContext context,
             @RequestBody ControlledModelCatalogEntryCreateFromDeploymentRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(ControlledModelCatalogEntryView.from(
+        return ResponseEntity.ok(ControlledModelCatalogEntryView.from(
                 catalog.createFromDeployment(context, new PlatformModelDeploymentId(request.parsedPlatformDeploymentId()),
                         request.expectedDeploymentVersion())));
     }

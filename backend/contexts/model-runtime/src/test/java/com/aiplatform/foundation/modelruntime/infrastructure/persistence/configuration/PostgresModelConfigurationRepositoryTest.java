@@ -96,7 +96,7 @@ class PostgresModelConfigurationRepositoryTest {
     }
 
     @Test
-    void 分页选择目录只返回来源当前可用的已发布条目() {
+    void 历史已发布状态没有完整供应事实时不能回退旧全局目录() {
         jdbc.update("""
                 INSERT INTO model_runtime.controlled_model_catalog_entry
                 (id, provider_kind, endpoint, model_code, model_type, context_window, output_limit,
@@ -142,10 +142,10 @@ class PostgresModelConfigurationRepositoryTest {
                         NULL, 620000000000000003, 1, 'PUBLISHED', 1, ?)
                 """, Timestamp.from(Instant.parse("2026-07-28T00:00:04Z")));
 
-        var page = repository.findPublishedCatalogPage(1, 20);
+        var page = repository.findPublishedCatalogPage(new TenantId(2001L), 1, 20);
 
-        assertEquals(1, page.totalElements());
-        assertEquals(java.util.List.of(3001L), page.items().stream()
+        assertEquals(0, page.totalElements());
+        assertEquals(java.util.List.of(), page.items().stream()
                 .map(value -> value.id().value())
                 .toList());
     }
@@ -196,7 +196,7 @@ class PostgresModelConfigurationRepositoryTest {
 
     @Test
     void 保存并发布受控目录条目时使用乐观版本更新() {
-        var deploymentId = new PlatformModelDeploymentId(620000000000000001L);
+        var deploymentId = new PlatformModelDeploymentId(620000000000000008L);
         var draft = ControlledModelCatalogEntry.createFromPlatformDeployment(
                 new ControlledModelCatalogEntryId(3002L),
                 deploymentId,
@@ -218,7 +218,7 @@ class PostgresModelConfigurationRepositoryTest {
     }
 
     @Test
-    void 相同厂商端点模型和类型的目录条目返回稳定冲突而不是数据库异常() {
+    void 相同平台部署修订的第二份目录返回稳定冲突而不是数据库异常() {
         var duplicate = ControlledModelCatalogEntry.createFromPlatformDeployment(
                 new ControlledModelCatalogEntryId(3008L),
                 new PlatformModelDeploymentId(620000000000000001L),
@@ -238,7 +238,7 @@ class PostgresModelConfigurationRepositoryTest {
     void 保存确定性目录快照时允许受控内存端点() {
         var entry = ControlledModelCatalogEntry.createFromPlatformDeployment(
                 new ControlledModelCatalogEntryId(3008L),
-                new PlatformModelDeploymentId(620000000000000001L),
+                new PlatformModelDeploymentId(620000000000000009L),
                 3L,
                 com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderKind.DETERMINISTIC,
                 java.net.URI.create("memory://deterministic"),
@@ -273,7 +273,7 @@ class PostgresModelConfigurationRepositoryTest {
         var active = ModelConfigurationAccessGrant.grant(
                 new ModelConfigurationAccessGrantId(5001L), new ModelConfigurationId(4001L),
                 new TenantId(2001L), null, Instant.parse("2026-07-28T00:00:00Z"));
-        accessRepository.save(active);
+        insertHistoricalConfigurationGrant(active);
         assertEquals(true, accessRepository.hasActiveGrant(
                 new ModelConfigurationId(4001L), new TenantId(2001L),
                 new com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelConfigurationOwnerId(6001L)));
@@ -307,7 +307,7 @@ class PostgresModelConfigurationRepositoryTest {
         repository.save(ModelConfiguration.create(
                 new ModelConfigurationId(4005L), ModelConfigurationScope.PLATFORM,
                 null, null, "未授权平台模型", catalog, createdAt));
-        accessRepository.save(ModelConfigurationAccessGrant.grant(
+        insertHistoricalConfigurationGrant(ModelConfigurationAccessGrant.grant(
                 new ModelConfigurationAccessGrantId(5001L), new ModelConfigurationId(4004L),
                 tenant, null, createdAt));
 
@@ -319,16 +319,35 @@ class PostgresModelConfigurationRepositoryTest {
                 page.items().stream().map(value -> value.id().value()).collect(java.util.stream.Collectors.toSet()));
     }
 
+    /** 历史关系只验旧存储读取与撤销，不把它补造为新供应授权；正式提交先证明拒绝。 */
+    private void insertHistoricalConfigurationGrant(ModelConfigurationAccessGrant grant) {
+        assertThrows(IllegalStateException.class, () -> accessRepository.save(grant));
+        jdbc.update("INSERT INTO model_runtime.model_configuration_access_grant (id, model_configuration_id, grantee_tenant_id, grantee_membership_id, status, version, created_at, revoked_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                grant.id().value(), grant.modelConfigurationId().value(), grant.granteeTenantId().value(),
+                grant.granteeMembershipId() == null ? null : grant.granteeMembershipId().value(), grant.status().name(),
+                grant.version(), Timestamp.from(grant.createdAt()), grant.revokedAt() == null ? null : Timestamp.from(grant.revokedAt()));
+    }
+
     @SpringBootConfiguration @EnableAutoConfiguration
     @MapperScan("com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration")
     static class TestApplication {
+        @Bean com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor pagination() {
+            var result = new com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor();
+            result.addInnerInterceptor(new com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor(com.baomidou.mybatisplus.annotation.DbType.POSTGRE_SQL));
+            return result;
+        }
         @Bean ModelConfigurationRepository repository(
                 ControlledModelCatalogEntryMapper catalogMapper,
-                ModelConfigurationMapper mapper) {
-            return new PostgresModelConfigurationRepository(catalogMapper, mapper);
+                ModelConfigurationMapper mapper, org.springframework.transaction.PlatformTransactionManager transactions) {
+            return new PostgresModelConfigurationRepository(catalogMapper, mapper,
+                    () -> new com.aiplatform.foundation.security.identity.TenantActivityFacts() {
+                        public void requireActive(java.util.Set<Long> ids) { if (!ids.equals(java.util.Set.of(2001L))) throw new IllegalArgumentException("合成活动租户不匹配"); }
+                        public boolean isActive(long id) { return id == 2001L; }
+                    }, () -> (tenant, feature) -> { if (tenant.value() != 2001L || !feature.equals("modelGovernance")) throw new IllegalStateException("合成功能不可用"); }, transactions);
         }
-        @Bean ModelConfigurationAccessRepository accessRepository(ModelConfigurationAccessMapper mapper) {
-            return new PostgresModelConfigurationAccessRepository(mapper);
+        @Bean ModelConfigurationAccessRepository accessRepository(ModelConfigurationAccessMapper mapper,
+                ModelConfigurationRepository repository, org.springframework.transaction.PlatformTransactionManager transactions) {
+            return new PostgresModelConfigurationAccessRepository(mapper, repository, transactions);
         }
     }
 }

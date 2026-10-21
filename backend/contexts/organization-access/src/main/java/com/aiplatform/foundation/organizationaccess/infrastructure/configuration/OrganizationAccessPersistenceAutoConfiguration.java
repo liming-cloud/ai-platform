@@ -126,8 +126,8 @@ public class OrganizationAccessPersistenceAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     com.aiplatform.foundation.security.identity.TenantActivityFacts tenantActivityFacts(
-            com.aiplatform.foundation.organizationaccess.application.tenantlifecycle.port.out.TenantLifecycleReadPort readPort) {
-        return readPort::requireActive;
+            TenantLifecycleReadMapper mapper) {
+        return new com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.repository.PostgresTenantActivityFacts(mapper);
     }
 
     @Bean

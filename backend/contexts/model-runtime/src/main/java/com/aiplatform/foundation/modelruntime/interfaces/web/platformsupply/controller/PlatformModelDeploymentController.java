@@ -99,15 +99,47 @@ public class PlatformModelDeploymentController {
     @PostMapping("/{modelDeploymentId}/publish")
     public PlatformModelDeploymentView publish(
             PlatformRequestContext context, @PathVariable String modelDeploymentId,
-            @RequestBody PlatformModelDeploymentPublishRequest request) {
-        return deployments.publish(new PublishPlatformModelDeploymentCommand(context, modelDeploymentId, request.expectedVersion()));
+            @RequestBody PlatformModelDeploymentPublishRequest request,
+            org.springframework.web.context.request.NativeWebRequest httpRequest) {
+        return deployments.publish(new PublishPlatformModelDeploymentCommand(context, modelDeploymentId,
+                request.expectedVersion(), continuity(context, httpRequest)));
     }
 
     @PostMapping("/{modelDeploymentId}/disable")
     public PlatformModelDeploymentView disable(
             PlatformRequestContext context, @PathVariable String modelDeploymentId,
-            @RequestBody PlatformModelDeploymentDisableRequest request) {
-        return deployments.disable(new DisablePlatformModelDeploymentCommand(context, modelDeploymentId, request.expectedVersion()));
+            @RequestBody PlatformModelDeploymentDisableRequest request,
+            org.springframework.web.context.request.NativeWebRequest httpRequest) {
+        return deployments.disable(new DisablePlatformModelDeploymentCommand(context, modelDeploymentId,
+                request.expectedVersion(), continuity(context, httpRequest)));
+    }
+
+    /** 当前对象的独立发布和授权影响，读取不调用厂商或改变配置。 */
+    @GetMapping("/{modelDeploymentId}/supply")
+    public com.aiplatform.foundation.modelruntime.application.platformsupply.dto.publication.PlatformSupplyFacts supply(
+            PlatformRequestContext context, @PathVariable String modelDeploymentId) {
+        return deployments.supplyFacts(context, modelDeploymentId).orElseThrow(
+                com.aiplatform.foundation.modelruntime.application.deployment.exception.ModelDeploymentNotFoundException::new);
+    }
+
+    /** 只收紧已选租户的供应权；权限来自平台会话，目标不能创建新授权。 */
+    @PostMapping("/{modelDeploymentId}/grants/{tenantId}/revoke")
+    public ResponseEntity<Void> revoke(PlatformRequestContext context, @PathVariable String modelDeploymentId,
+            @PathVariable long tenantId,
+            @RequestBody com.aiplatform.foundation.modelruntime.interfaces.web.platformsupply.request.PlatformSupplyRevokeRequest request,
+            org.springframework.web.context.request.NativeWebRequest httpRequest) {
+        deployments.revokeSupply(context, modelDeploymentId, tenantId, request.deploymentVersion(), request.grantVersion(),
+                continuity(context, httpRequest));
+        return ResponseEntity.noContent().build();
+    }
+
+    private static com.aiplatform.foundation.security.session.PlatformSessionContinuity continuity(PlatformRequestContext context,
+            org.springframework.web.context.request.NativeWebRequest request) {
+        var value = request.getAttribute(com.aiplatform.foundation.security.session.PlatformSessionContinuity.REQUEST_ATTRIBUTE,
+                org.springframework.web.context.request.RequestAttributes.SCOPE_REQUEST);
+        if (!(value instanceof com.aiplatform.foundation.security.session.PlatformSessionContinuity session) || !session.matches(context))
+            throw new com.aiplatform.foundation.security.session.InvalidAuthenticatedSessionException();
+        return session;
     }
 
     private static String requireIdempotencyKey(String value) {

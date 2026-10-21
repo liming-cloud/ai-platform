@@ -130,6 +130,8 @@ class ModelRuntimeAutoConfigurationTest {
                         () -> mock(PlatformProviderModelDiscoveryLookup.class))
                 .withBean(PlatformModelDeploymentRepository.class,
                         () -> mock(PlatformModelDeploymentRepository.class))
+                .withBean(com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.publication.PlatformModelSupplyPublicationStore.class,
+                        () -> mock(com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.publication.PlatformModelSupplyPublicationStore.class))
                 .withBean(PlatformModelDeploymentVerificationStore.class,
                         () -> mock(PlatformModelDeploymentVerificationStore.class))
                 .withBean(
@@ -401,6 +403,9 @@ class ModelRuntimeAutoConfigurationTest {
                 .withBean(
                         PlatformTransactionManager.class,
                         () -> mock(PlatformTransactionManager.class))
+                .withBean(com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformSupplyPublicationMapper.class,
+                        () -> mock(com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformSupplyPublicationMapper.class))
+                .withBean(EntityIdGenerator.class, () -> () -> 1001L)
                 .withBean(JdbcTemplate.class, () -> mock(JdbcTemplate.class))
                 .withBean(com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformCapabilityVerificationMapper.class,
                         () -> mock(com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformCapabilityVerificationMapper.class))

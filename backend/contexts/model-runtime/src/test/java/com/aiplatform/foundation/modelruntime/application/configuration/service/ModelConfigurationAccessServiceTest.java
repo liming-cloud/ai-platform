@@ -31,6 +31,19 @@ import org.junit.jupiter.api.Test;
 class ModelConfigurationAccessServiceTest {
 
     @Test
+    void 即使配置属于当前租户也不能绕过平台供应授权() {
+        var configurations = new ConfigurationRepository();
+        var tenant = new TenantId(2001L);
+        var configuration = ModelConfiguration.create(new ModelConfigurationId(4001L),
+                ModelConfigurationScope.TENANT, tenant, null, "未获供应授权的模型",
+                new ControlledModelCatalogEntryId(3001L), Instant.parse("2026-07-28T00:00:00Z")).activate();
+        var service = new ModelConfigurationAccessService(configurations, new AccessRepository(),
+                () -> 5001L, Clock.systemUTC());
+
+        assertFalse(service.mayUse(member(tenant, 6001L), configuration));
+    }
+
+    @Test
     void 平台授权撤销后成员立即不可再使用模型配置() {
         var configurations = new ConfigurationRepository();
         configurations.configuration = ModelConfiguration.create(
@@ -43,6 +56,7 @@ class ModelConfigurationAccessServiceTest {
                 Clock.fixed(Instant.parse("2026-07-28T00:00:00Z"), ZoneOffset.UTC));
 
         var targetTenant = new TenantId(2001L);
+        configurations.supplyTenant = targetTenant;
         var grant = service.grant(platformAdmin(), new ModelConfigurationId(4001L), targetTenant, null);
         assertTrue(service.mayUse(member(targetTenant, 6001L), configurations.configuration));
 
@@ -79,6 +93,7 @@ class ModelConfigurationAccessServiceTest {
         var service = new ModelConfigurationAccessService(
                 configurations, grants, () -> 5001L, Clock.systemUTC());
         var targetTenant = new TenantId(2001L);
+        configurations.supplyTenant = targetTenant;
         service.grant(platformAdmin(), new ModelConfigurationId(4001L), targetTenant, null);
 
         assertFalse(service.mayUse(member(targetTenant, 6001L), configurations.configuration));
@@ -104,6 +119,10 @@ class ModelConfigurationAccessServiceTest {
 
     private static final class ConfigurationRepository implements ModelConfigurationRepository {
         private ModelConfiguration configuration;
+        private TenantId supplyTenant;
+        @Override public boolean isSupplyAvailable(TenantId tenantId, ControlledModelCatalogEntryId id) {
+            return tenantId.equals(supplyTenant) && id.equals(new ControlledModelCatalogEntryId(3001L));
+        }
         @Override public Optional<ControlledModelCatalogEntry> findCatalogEntry(ControlledModelCatalogEntryId id) { return Optional.empty(); }
         @Override public void saveCatalogEntry(ControlledModelCatalogEntry entry) { }
         @Override public void updateCatalogEntry(ControlledModelCatalogEntry entry) { }

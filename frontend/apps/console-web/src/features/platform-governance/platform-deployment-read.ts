@@ -38,11 +38,39 @@ function validDeployment(value: unknown): value is PlatformModelDeploymentSummar
   if (!/^[1-9][0-9]*$/.test(d.id) || typeof d.displayName !== "string" || typeof d.connectionDisplayName !== "string"
     || !["CHAT", "EMBEDDING", "RERANK"].includes(d.modelType) || !["DRAFT", "VERIFIED", "PUBLISHED", "DISABLED"].includes(d.status)
     || !Number.isSafeInteger(d.version) || d.version < 0 || !Number.isSafeInteger(d.contextWindow) || d.contextWindow <= 0) return false;
+  if (!validSupply(d)) return false;
   if (d.inputs === null) return true;
   const input = d.inputs;
   return !!input && typeof input.parameterSource === "string" && typeof input.residency === "string"
     && typeof input.candidateDisplayName === "string" && Array.isArray(input.plannedTenantIds)
     && input.plannedTenantIds.length > 0 && input.plannedTenantIds.every(id => typeof id === "string" && /^[1-9][0-9]*$/.test(id));
+}
+
+function validSupply(d: PlatformModelDeploymentSummary): boolean {
+  const s = d.supply;
+  if (s == null) return true;
+  if (!s || typeof s !== "object" || !d.inputs || !Array.isArray(d.inputs.plannedTenantIds)
+    || !publicId(s.publicationId) || !publicId(s.catalogEntryId) || typeof s.currentSourceAvailable !== "boolean"
+    || !Number.isSafeInteger(s.deploymentRevision) || s.deploymentRevision < 1
+    || !(d.status === "PUBLISHED" ? s.deploymentRevision === d.version : d.status === "DISABLED" && s.deploymentRevision + 1 === d.version)
+    || typeof s.publishedAt !== "string" || !Number.isFinite(Date.parse(s.publishedAt))) return false;
+  const counts = [s.selectedTenantCount, s.activeGrantCount, s.revokedGrantCount, s.dependentConfigurationCount];
+  return counts.every(count => Number.isSafeInteger(count) && count >= 0)
+    && s.selectedTenantCount <= 1000 && s.selectedTenantCount === d.inputs.plannedTenantIds.length
+    && s.activeGrantCount + s.revokedGrantCount === s.selectedTenantCount
+    && Array.isArray(s.activeTenantIds) && s.activeTenantIds.length === s.activeGrantCount
+    && new Set(s.activeTenantIds).size === s.activeTenantIds.length
+    && s.activeTenantIds.every(id => publicId(id) && d.inputs!.plannedTenantIds.includes(id));
+}
+
+function publicId(value: unknown): value is string {
+  return typeof value === "string" && /^[1-9][0-9]{0,18}$/.test(value) && BigInt(value) <= 9223372036854775807n;
+}
+
+/** 发布前显示计划，发布后只恢复独立活动授权；缺正式事实时保持未知，不能回退计划。 */
+export function displayedSupplyTenantIds(deployment: PlatformModelDeploymentSummary): string[] | undefined {
+  return deployment.status === "DRAFT" || deployment.status === "VERIFIED"
+    ? deployment.inputs?.plannedTenantIds : deployment.supply?.activeTenantIds;
 }
 
 /** 身份／权限拒绝立即结束本轮读取，剩余结果仅由页面所有者令牌控制，不能恢复旧事实。 */

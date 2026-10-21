@@ -126,14 +126,28 @@ public final class PlatformModelProbeProviderService {
     }
 
     private static PlatformCapabilityVerificationSession.Target target(PlatformModelDeployment deployment) {
+        return target(deployment, deployment.version());
+    }
+
+    /** 发布复核使用验证前的精确草稿修订，沿用实际外呼的规范字段顺序与摘要算法。 */
+    public static String verificationTargetFingerprint(PlatformModelDeployment deployment, long draftRevision) {
+        return target(deployment, draftRevision).fingerprint();
+    }
+
+    /** 只摘要非秘密声明，发布不能扩大原验证的拟授权集合或替换参数来源。 */
+    public static String verificationInputsDigest(PlatformModelDeployment deployment) {
         var input = deployment.inputs();
-        var inputsDigest = PlatformCapabilitySafetySuite.digest(input.parameterSource(), input.residency(),
+        return PlatformCapabilitySafetySuite.digest(input.parameterSource(), input.residency(),
                 Objects.toString(input.rerankCandidateLimit(), ""), input.plannedTenantIds().stream().sorted().map(Object::toString).collect(Collectors.joining(",")),
                 Long.toString(input.discoveryId()), Objects.toString(input.candidateDisplayName(), ""), input.classification().name(),
                 Long.toString(input.declaredBySubjectId()), input.declaredAt().toString());
-        return new PlatformCapabilityVerificationSession.Target(deployment.id().value(), deployment.version(),
+    }
+
+    private static PlatformCapabilityVerificationSession.Target target(PlatformModelDeployment deployment, long revision) {
+        var input = deployment.inputs();
+        return new PlatformCapabilityVerificationSession.Target(deployment.id().value(), revision,
                 deployment.providerConnectionId().value(), deployment.providerConnectionRevision(), deployment.modelCode(), deployment.modelType(),
-                input.residency(), inputsDigest, deployment.contextWindow(), deployment.outputLimit() == null ? 0 : deployment.outputLimit(),
+                input.residency(), verificationInputsDigest(deployment), deployment.contextWindow(), deployment.outputLimit() == null ? 0 : deployment.outputLimit(),
                 deployment.embeddingDimension() == null ? 0 : deployment.embeddingDimension(), input.rerankCandidateLimit() == null ? 0 : input.rerankCandidateLimit());
     }
 

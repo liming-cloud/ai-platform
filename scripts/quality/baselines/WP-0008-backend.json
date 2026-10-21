@@ -24,10 +24,9 @@
   "legacyContextAdapterCount": 79,
   "runtimeDirectoryFileCount": 27,
   "cursorListContractCount": 54,
-  "manualListLimitCount": 4,
+  "manualListLimitCount": 3,
   "manualListLimitStatements": [
     "backend/contexts/knowledge-data/src/main/resources/mapper/knowledge-data/GovernedFileDataSourceReadMapper.xml#selectPage",
-    "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/ControlledModelCatalogEntryMapper.xml#selectPublishedAvailablePage",
     "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/ModelConfigurationMapper.xml#selectVisiblePage",
     "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantCustomRoleDirectoryMapper.xml#selectPage"
   ]

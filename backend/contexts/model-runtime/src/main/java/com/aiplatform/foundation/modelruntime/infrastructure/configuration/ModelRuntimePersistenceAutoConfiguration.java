@@ -173,6 +173,23 @@ public class ModelRuntimePersistenceAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.publication.PlatformModelSupplyPublicationStore platformModelSupplyPublicationStore(
+            com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformSupplyPublicationMapper mapper,
+            com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformCapabilityVerificationMapper verification,
+            com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformModelDeploymentMapper locks,
+            PlatformModelDeploymentRepository deployments, PlatformProviderConnectionRepository connections,
+            PlatformProviderModelDiscoveryLookup discoveries, ModelConfigurationRepository catalog,
+            ObjectProvider<com.aiplatform.foundation.security.identity.PlatformModelWriteFacts> actors,
+            ObjectProvider<com.aiplatform.foundation.security.identity.TenantActivityFacts> tenants,
+            ObjectProvider<com.aiplatform.foundation.security.identity.TenantFeatureAvailability> features,
+            com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator identifiers, PlatformTransactionManager transactions) {
+        return new com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.repository.PostgresPlatformModelSupplyPublicationStore(
+                mapper, verification, locks, deployments, connections, discoveries, catalog, actors::getIfAvailable,
+                tenants::getIfAvailable, features::getIfAvailable, identifiers, Clock.systemUTC(), transactions);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     PlatformProviderConnectionCredentialTransaction platformProviderConnectionCredentialTransaction(
             PlatformTransactionManager transactions) {
         return new SpringPlatformProviderConnectionCredentialTransaction(transactions);
@@ -214,15 +231,18 @@ public class ModelRuntimePersistenceAutoConfiguration {
     @ConditionalOnMissingBean
     ModelConfigurationRepository modelConfigurationRepository(
             ControlledModelCatalogEntryMapper catalogMapper,
-            ModelConfigurationMapper configurationMapper) {
-        return new PostgresModelConfigurationRepository(catalogMapper, configurationMapper);
+            ModelConfigurationMapper configurationMapper,
+            ObjectProvider<com.aiplatform.foundation.security.identity.TenantActivityFacts> tenants,
+            ObjectProvider<com.aiplatform.foundation.security.identity.TenantFeatureAvailability> features,
+            PlatformTransactionManager transactions) {
+        return new PostgresModelConfigurationRepository(catalogMapper, configurationMapper, tenants::getIfAvailable, features::getIfAvailable, transactions);
     }
 
     @Bean
     @ConditionalOnMissingBean
     ModelConfigurationAccessRepository modelConfigurationAccessRepository(
-            ModelConfigurationAccessMapper mapper) {
-        return new PostgresModelConfigurationAccessRepository(mapper);
+            ModelConfigurationAccessMapper mapper, ModelConfigurationRepository configurations, PlatformTransactionManager transactions) {
+        return new PostgresModelConfigurationAccessRepository(mapper, configurations, transactions);
     }
 
     @Bean

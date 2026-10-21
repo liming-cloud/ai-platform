@@ -16,6 +16,22 @@ import org.springframework.context.annotation.Bean;
 @AutoConfiguration
 @ConditionalOnProperty(name = "foundation.organization-access.feature-read.enabled", havingValue = "true")
 public class OrganizationAccessFeatureReadAutoConfiguration {
+    /** 供应新使用复核当前活动状态，仅注册生命周期读取 Mapper。 */
+    @Bean
+    @ConditionalOnMissingBean(com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLifecycleReadMapper.class)
+    MapperFactoryBean<com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLifecycleReadMapper> tenantLifecycleReadMapper(SqlSessionFactory sessions) {
+        var mapper = new MapperFactoryBean<>(com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLifecycleReadMapper.class);
+        mapper.setSqlSessionFactory(sessions);
+        return mapper;
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(com.aiplatform.foundation.security.identity.TenantActivityFacts.class)
+    com.aiplatform.foundation.security.identity.TenantActivityFacts tenantActivityFacts(
+            com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.mapper.TenantLifecycleReadMapper mapper) {
+        return new com.aiplatform.foundation.organizationaccess.infrastructure.persistence.tenant.repository.PostgresTenantActivityFacts(mapper);
+    }
+
     /** 只注册功能配置 Mapper，避免扫描同目录的账户与生命周期映射器。 */
     @Bean
     @ConditionalOnMissingBean(TenantFeatureSettingsMapper.class)

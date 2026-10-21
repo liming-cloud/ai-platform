@@ -136,18 +136,15 @@ class PlatformModelDeploymentServiceTest {
     }
 
     @Test
-    void 原子发布合同未闭合时完整草稿不能提前发布() {
+    void 发布使用必需的原子提交器并拒绝缺失会话连续性() {
         var fixture = fixture();
-        var verified = historicalDraft().verify(new PlatformModelCapabilityVerificationId(630000000000000001L),
-                NOW.plusSeconds(3600));
+        var verified = historicalDraft().verify(new PlatformModelCapabilityVerificationId(630000000000000001L), NOW.plusSeconds(3600));
         when(fixture.publications().find(CONNECTION_ID, 1L)).thenReturn(Optional.of(publication(CONNECTION_ID, 1L)));
         when(fixture.deployments().findById(verified.id())).thenReturn(Optional.of(verified));
-        when(fixture.deployments().update(any(), anyLong())).thenReturn(true);
-
-        var failure = assertThrows(com.aiplatform.foundation.shared.kernel.error.ApplicationException.class,
-                () -> fixture.service().publish(new PublishPlatformModelDeploymentCommand(command().context(),
-                    verified.id().toString(), verified.version())));
-        assertEquals(com.aiplatform.foundation.modelruntime.domain.common.error.ModelRuntimeErrorCode.PLATFORM_DEPLOYMENT_CONTRACT_PENDING, failure.errorCode());
+        assertThrows(com.aiplatform.foundation.security.session.InvalidAuthenticatedSessionException.class,
+                () -> fixture.service().publish(new PublishPlatformModelDeploymentCommand(command().context(), verified.id().toString(), verified.version())));
+        var result = fixture.service().publish(new PublishPlatformModelDeploymentCommand(command().context(), verified.id().toString(), verified.version(), () -> true));
+        assertEquals("PUBLISHED", result.status());
         verify(fixture.deployments(), never()).update(any(), anyLong());
         verifyNoInteractions(fixture.probeProvider(), fixture.verificationStore());
     }
@@ -269,8 +266,15 @@ class PlatformModelDeploymentServiceTest {
                     Set.of(ModelCapability.EMBEDDING), Duration.ZERO, "S2_PASSED", NOW);
         });
         var verificationStore = mock(PlatformModelDeploymentVerificationStore.class);
+        var supply = mock(com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.publication.PlatformModelSupplyPublicationStore.class);
+        when(supply.publish(any(), any(), any())).thenAnswer(invocation -> {
+            java.util.function.BooleanSupplier session = invocation.getArgument(2);
+            if (!session.getAsBoolean()) throw new com.aiplatform.foundation.security.session.InvalidAuthenticatedSessionException();
+            PlatformModelDeployment deployment = invocation.getArgument(1);
+            return deployment.publish(NOW);
+        });
         var service = new PlatformModelDeploymentService(deployments, connections, publications, discoveries,
-                probeProvider, clock, () -> 630000000000000002L, true);
+                probeProvider, clock, () -> 630000000000000002L, true, supply);
         return new DeploymentFixture(service, publications, discoveries, deployments, probeProvider, verificationStore, connection);
     }
 
@@ -286,7 +290,7 @@ class PlatformModelDeploymentServiceTest {
                 new ForbiddenDeploymentRepository(), new ForbiddenConnectionRepository(), publications, new ForbiddenDiscoveryLookup(),
                 new PlatformModelProbeProviderService(java.util.List.of(), java.util.List.of(), java.util.List.of(),
                     new ForbiddenVerificationStore(), Clock.systemUTC(), () -> 630000000000000001L, Duration.ofHours(24)),
-                Clock.systemUTC(), () -> 620000000000000001L, true);
+                Clock.systemUTC(), () -> 620000000000000001L, true, mock(com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.publication.PlatformModelSupplyPublicationStore.class));
 
         assertThrows(ModelCatalogPermissionDeniedException.class, () -> service.create(new CreatePlatformModelDeploymentCommand(
                 sessionWithoutPlatformModelWrite(), "platform-deploy-0001", "610000000000000001", 1,

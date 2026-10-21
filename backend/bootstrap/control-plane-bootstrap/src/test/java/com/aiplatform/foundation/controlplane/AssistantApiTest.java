@@ -27,6 +27,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -112,7 +114,20 @@ class AssistantApiTest {
         jdbc.update("DELETE FROM knowledge_data.knowledge_space");
         jdbc.update("DELETE FROM model_runtime.model_configuration_credential");
         jdbc.update("DELETE FROM model_runtime.model_configuration");
+        // 只清理本类 Testcontainers 数据库；当前供给必须拥有发布、验证及精确租户授权。
+        jdbc.update("DELETE FROM model_runtime.platform_model_supply_audit");
+        jdbc.update("DELETE FROM model_runtime.platform_model_supply_grant");
+        jdbc.update("DELETE FROM model_runtime.platform_model_deployment_publication");
         jdbc.update("DELETE FROM model_runtime.controlled_model_catalog_entry");
+        jdbc.update("DELETE FROM model_runtime.platform_model_deployment_verification_audit");
+        jdbc.update("DELETE FROM model_runtime.platform_capability_verification_reservation");
+        jdbc.update("UPDATE model_runtime.platform_model_deployment SET status = 'DRAFT', last_verification_id = NULL, verification_expires_at = NULL");
+        jdbc.update("DELETE FROM model_runtime.platform_model_capability_verification");
+        jdbc.update("DELETE FROM model_runtime.platform_model_deployment");
+        jdbc.update("DELETE FROM model_runtime.platform_discovered_model");
+        jdbc.update("DELETE FROM model_runtime.platform_provider_model_discovery");
+        jdbc.update("DELETE FROM model_runtime.platform_provider_connection_publication");
+        jdbc.update("DELETE FROM model_runtime.platform_provider_connection");
         seedReferences();
     }
 
@@ -294,6 +309,8 @@ class AssistantApiTest {
                 Timestamp.from(NOW.minusSeconds(30)),
                 EMBEDDING_CATALOG,
                 Timestamp.from(NOW.minusSeconds(30)));
+        seedPublishedSupply(CHAT_CATALOG, "CHAT");
+        seedPublishedSupply(EMBEDDING_CATALOG, "EMBEDDING");
         jdbc.update(
                 """
                 INSERT INTO model_runtime.model_configuration (
@@ -366,6 +383,105 @@ class AssistantApiTest {
                 Timestamp.from(NOW.minusSeconds(90)),
                 Timestamp.from(NOW.minusSeconds(60)),
                 Timestamp.from(NOW.minusSeconds(30)));
+    }
+
+    /**
+     * 为助手集成测试补齐当前供给事实；只写 Testcontainers，不调用厂商或降低生产读取条件。
+     * 原子提交、真实固定样本及并发回滚由 model-runtime 的发布仓储合同测试独立验证。
+     */
+    private void seedPublishedSupply(long catalogId, String type) {
+        var now = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
+        var parameters = new MapSqlParameterSource()
+                .addValue("catalog", catalogId).addValue("connection", catalogId + 100)
+                .addValue("discovery", catalogId + 200).addValue("deployment", catalogId + 300)
+                .addValue("verification", catalogId + 400).addValue("reservation", catalogId + 500)
+                .addValue("publication", catalogId + 600).addValue("tenant", STORE)
+                .addValue("now", Timestamp.from(now)).addValue("start", Timestamp.from(now.minusSeconds(1)))
+                .addValue("deadline", Timestamp.from(now.plusSeconds(29)))
+                .addValue("expiry", Timestamp.from(now.plusSeconds(3600)))
+                .addValue("digest", "a".repeat(64)).addValue("plan", String.format("%064x", catalogId))
+                .addValue("samples", String.join(",", com.aiplatform.foundation.modelruntime.application.platformsupply.service
+                        .PlatformCapabilitySafetySuite.sampleDigests(
+                                com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType.valueOf(type))));
+        var sql = new NamedParameterJdbcTemplate(jdbc);
+        sql.update("""
+                INSERT INTO model_runtime.platform_provider_connection
+                    (id, scope, provider_kind, display_name, endpoint, region, authentication_type,
+                     credential_reference, status, version, last_probe_succeeded, last_probe_code,
+                     last_probed_at, created_at)
+                SELECT :connection, 'PLATFORM', provider_kind, '合成供给连接' || :catalog, endpoint,
+                    'local', 'API_KEY', 'secret://platform-provider-connection/' || :connection,
+                    'VERIFIED', 1, TRUE, 'SYNTHETIC_OK', :start, :start
+                FROM model_runtime.controlled_model_catalog_entry WHERE id = :catalog
+                """, parameters);
+        sql.update("""
+                INSERT INTO model_runtime.platform_provider_connection_publication
+                VALUES (:publication, :connection, 1, 1, 101, :start, :start)
+                """, parameters);
+        sql.update("""
+                INSERT INTO model_runtime.platform_provider_model_discovery
+                VALUES (:discovery, :connection, 1, TRUE, 'SYNTHETIC_OK', 0, :start, :expiry)
+                """, parameters);
+        sql.update("""
+                INSERT INTO model_runtime.platform_discovered_model
+                    (discovery_id, model_code, model_type, capabilities, classification)
+                SELECT :discovery, model_code, model_type, ARRAY[model_type]::TEXT[], 'CONFIRMED_BY_PROVIDER'
+                FROM model_runtime.controlled_model_catalog_entry WHERE id = :catalog
+                """, parameters);
+        sql.update("""
+                INSERT INTO model_runtime.platform_model_deployment
+                    (id, scope, platform_provider_connection_id, platform_provider_connection_revision,
+                     model_code, display_name, model_type, capabilities, context_window, output_limit,
+                     embedding_dimension, status, version, created_at, parameter_source, residency,
+                     planned_tenant_ids, candidate_discovery_id, candidate_classification,
+                     declared_by_subject_id, declared_at)
+                SELECT :deployment, 'PLATFORM', :connection, 1, model_code, '合成供给部署' || :catalog,
+                    model_type, ARRAY[model_type]::TEXT[], context_window, output_limit, embedding_dimension,
+                    'DRAFT', 0, :start, '合成测试资料', 'local', ARRAY[:tenant]::BIGINT[], :discovery,
+                    'CONFIRMED_BY_PROVIDER', 101, :start
+                FROM model_runtime.controlled_model_catalog_entry WHERE id = :catalog
+                """, parameters);
+        sql.update("""
+                INSERT INTO model_runtime.platform_model_capability_verification
+                    (id, platform_model_deployment_id, deployment_revision, platform_provider_connection_id,
+                     platform_provider_connection_revision, model_code, declared_capabilities,
+                     observed_capabilities, succeeded, result_code, elapsed_millis, probed_at, expires_at)
+                SELECT :verification, :deployment, 0, :connection, 1, model_code, ARRAY[model_type]::TEXT[],
+                    ARRAY[model_type]::TEXT[], TRUE, 'S2_PASSED', 1, :start, :expiry
+                FROM model_runtime.controlled_model_catalog_entry WHERE id = :catalog
+                """, parameters);
+        sql.update("""
+                UPDATE model_runtime.platform_model_deployment
+                SET status = 'PUBLISHED', version = 2, last_verification_id = :verification,
+                    verification_expires_at = :expiry WHERE id = :deployment
+                """, parameters);
+        sql.update("""
+                UPDATE model_runtime.controlled_model_catalog_entry
+                SET source_platform_deployment_id = :deployment, source_platform_deployment_revision = 2
+                WHERE id = :catalog
+                """, parameters);
+        sql.update("""
+                INSERT INTO model_runtime.platform_capability_verification_reservation
+                    (id, deployment_id, deployment_revision, actor_subject_id, actor_permission_version,
+                     target_fingerprint, inputs_digest, plan_fingerprint, quote_digest, quote_expires_at,
+                     sample_version, expected_sample_digests, reserved_fee, status, outcome,
+                     attempted_requests, passed_sample_digests, started_at, deadline, completed_at)
+                VALUES (:reservation, :deployment, 0, 101, 1, :digest, :digest, :plan, :digest, :expiry,
+                    's2-capability-safety-v1', string_to_array(:samples, ','), 0.01, 'COMPLETED', 'PASSED',
+                    3, string_to_array(:samples, ','), :start, :deadline, :now)
+                """, parameters);
+        sql.update("""
+                INSERT INTO model_runtime.platform_model_deployment_verification_audit
+                VALUES (:reservation, :verification, :deployment, 101, 1, TRUE, :now)
+                """, parameters);
+        sql.update("""
+                INSERT INTO model_runtime.platform_model_deployment_publication
+                VALUES (:publication, :deployment, 2, :verification, :catalog, 101, 1, :digest, :now)
+                """, parameters);
+        sql.update("""
+                INSERT INTO model_runtime.platform_model_supply_grant
+                VALUES (:publication, :tenant, 'ACTIVE', 0, :now, NULL)
+                """, parameters);
     }
 
     private static HttpHeaders authorized(String token) {

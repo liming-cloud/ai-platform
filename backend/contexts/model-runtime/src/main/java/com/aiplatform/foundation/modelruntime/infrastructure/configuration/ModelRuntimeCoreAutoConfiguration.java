@@ -203,7 +203,8 @@ public class ModelRuntimeCoreAutoConfiguration {
         PlatformModelDeploymentRepository.class,
         PlatformProviderConnectionRepository.class,
         PlatformProviderModelDiscoveryLookup.class,
-        PlatformModelDeploymentVerificationStore.class
+        PlatformModelDeploymentVerificationStore.class,
+        com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.publication.PlatformModelSupplyPublicationStore.class
     })
     @ConditionalOnMissingBean
     PlatformModelDeploymentService platformModelDeploymentService(
@@ -212,11 +213,12 @@ public class ModelRuntimeCoreAutoConfiguration {
             PlatformProviderConnectionPublicationRepository publications,
             PlatformProviderModelDiscoveryLookup discoveries,
             PlatformModelProbeProviderService probes,
+            com.aiplatform.foundation.modelruntime.application.platformsupply.port.out.publication.PlatformModelSupplyPublicationStore supply,
             EntityIdGenerator identifiers,
             ModelCatalogProperties properties) {
         return new PlatformModelDeploymentService(
                 deployments, connections, publications, discoveries, probes, Clock.systemUTC(), identifiers,
-                properties.isPlatformDeploymentWritesAvailable());
+                properties.isPlatformDeploymentWritesAvailable(), supply);
     }
 
     @Bean @ConditionalOnMissingBean
@@ -278,15 +280,11 @@ public class ModelRuntimeCoreAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnBean({PlatformModelDeploymentRepository.class, PlatformProviderConnectionRepository.class})
+    @ConditionalOnBean(ModelConfigurationRepository.class)
     @ConditionalOnMissingBean
     ControlledModelCatalogService controlledModelCatalogService(
-            ModelConfigurationRepository repository,
-            EntityIdGenerator identifiers,
-            PlatformModelDeploymentRepository deployments,
-            PlatformProviderConnectionRepository connections) {
-        return new ControlledModelCatalogService(
-                repository, identifiers, Clock.systemUTC(), deployments, connections);
+            ModelConfigurationRepository repository) {
+        return new ControlledModelCatalogService(repository);
     }
 
     @Bean

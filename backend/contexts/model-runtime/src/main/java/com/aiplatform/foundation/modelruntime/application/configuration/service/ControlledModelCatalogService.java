@@ -4,140 +4,54 @@ import com.aiplatform.foundation.modelruntime.application.configuration.exceptio
 import com.aiplatform.foundation.modelruntime.application.provider.exception.ModelCatalogPermissionDeniedException;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntry;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntryId;
-import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelRuntimeCapabilities;
+import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntryStatus;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
-import com.aiplatform.foundation.shared.contract.paging.PageQuery;
-import com.aiplatform.foundation.shared.contract.paging.PageResult;
-import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDeploymentId;
-import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDeploymentStatus;
-import com.aiplatform.foundation.modelruntime.domain.provider.model.ProviderConnectionStatus;
-import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformModelDeploymentRepository;
-import com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformProviderConnectionRepository;
-import com.aiplatform.foundation.security.identity.PermissionCode;
+import com.aiplatform.foundation.security.identity.PlatformPermissions;
 import com.aiplatform.foundation.security.identity.PlatformRequestContext;
 import com.aiplatform.foundation.security.identity.TrustedRequestContext;
-import com.aiplatform.foundation.shared.kernel.identifier.EntityIdGenerator;
-import java.time.Clock;
+import com.aiplatform.foundation.shared.contract.paging.PageQuery;
+import com.aiplatform.foundation.shared.contract.paging.PageResult;
 import java.util.Objects;
 
-/**
- * 仅允许平台管理员维护受控厂家、端点与模型编码目录。
- */
+/** 目录只由平台部署原子发布创建；旧写入口仅恢复已存在快照，租户读取始终限定供应授权。 */
 public final class ControlledModelCatalogService {
-
-    private static final PermissionCode PLATFORM_WRITE = new PermissionCode("model-platform:write");
-
     private final ModelConfigurationRepository repository;
-    private final EntityIdGenerator identifiers;
-    private final Clock clock;
-    private final PlatformModelDeploymentRepository platformDeployments;
-    private final PlatformProviderConnectionRepository platformConnections;
 
-    public ControlledModelCatalogService(
-            ModelConfigurationRepository repository,
-            EntityIdGenerator identifiers,
-            Clock clock) {
+    public ControlledModelCatalogService(ModelConfigurationRepository repository) {
         this.repository = Objects.requireNonNull(repository, "模型配置仓储不能为空");
-        this.identifiers = Objects.requireNonNull(identifiers, "标识生成器不能为空");
-        this.clock = Objects.requireNonNull(clock, "时钟不能为空");
-        this.platformDeployments = null;
-        this.platformConnections = null;
     }
 
-    public ControlledModelCatalogService(
-            ModelConfigurationRepository repository, EntityIdGenerator identifiers, Clock clock,
-            PlatformModelDeploymentRepository platformDeployments,
-            PlatformProviderConnectionRepository platformConnections) {
-        this.repository = Objects.requireNonNull(repository, "模型配置仓储不能为空");
-        this.identifiers = Objects.requireNonNull(identifiers, "标识生成器不能为空");
-        this.clock = Objects.requireNonNull(clock, "时钟不能为空");
-        this.platformDeployments = Objects.requireNonNull(platformDeployments, "平台模型部署仓储不能为空");
-        this.platformConnections = Objects.requireNonNull(platformConnections, "平台供应商连接仓储不能为空");
-    }
-
-    /**
-     * 目录事实只能由服务端从已发布、当前健康的平台部署冻结，浏览器不能提交 Endpoint 或能力。
-     */
-    public ControlledModelCatalogEntry createFromDeployment(
-            PlatformRequestContext context, PlatformModelDeploymentId deploymentId, long expectedVersion) {
+    /** 兼容旧调用方恢复同一目录，不新建目录、授权或发布事实。 */
+    public ControlledModelCatalogEntry createFromDeployment(PlatformRequestContext context,
+            PlatformModelDeploymentId deploymentId, long expectedVersion) {
         requirePlatformWrite(context);
-        var deployment = requirePlatformDeployments().findById(Objects.requireNonNull(deploymentId, "平台模型部署标识不能为空"))
-                .filter(value -> value.version() == expectedVersion)
-                .filter(value -> value.status() == PlatformModelDeploymentStatus.PUBLISHED)
-                .filter(value -> value.verificationExpiresAt() != null && value.verificationExpiresAt().isAfter(clock.instant()))
-                .orElseThrow(() -> new IllegalStateException("平台模型部署不可用于建立目录"));
-        var connection = requirePlatformConnections().findById(deployment.providerConnectionId())
-                .filter(value -> value.version() == deployment.providerConnectionRevision())
-                .filter(value -> value.status() == ProviderConnectionStatus.VERIFIED)
-                .orElseThrow(() -> new IllegalStateException("平台供应商连接已变化或不可用"));
-        var capabilities = deployment.modelType() == ModelType.CHAT
-                ? ModelRuntimeCapabilities.chat(deployment.contextWindow(), deployment.outputLimit())
-                : ModelRuntimeCapabilities.embedding(deployment.contextWindow(), deployment.embeddingDimension());
-        var entry = ControlledModelCatalogEntry.createFromPlatformDeployment(
-                new ControlledModelCatalogEntryId(identifiers.nextId()), deployment.id(), deployment.version(),
-                connection.providerKind(), connection.endpoint(), deployment.modelCode(), deployment.modelType(),
-                capabilities, clock.instant());
-        repository.saveCatalogEntry(entry);
-        return entry;
+        if (expectedVersion < 0) throw new IllegalArgumentException("部署修订无效");
+        return repository.findPublishedByDeployment(Objects.requireNonNull(deploymentId), expectedVersion)
+                .orElseThrow(ModelConfigurationNotFoundException::new);
     }
 
-    /** 发布前重新验证目录快照所引用的平台部署和连接仍可用。 */
-    public ControlledModelCatalogEntry publish(
-            PlatformRequestContext context, ControlledModelCatalogEntryId entryId) {
+    /** 旧独立发布入口只返回原子发布已经建立且当前有效的同一快照。 */
+    public ControlledModelCatalogEntry publish(PlatformRequestContext context, ControlledModelCatalogEntryId entryId) {
         requirePlatformWrite(context);
-        var entry = repository.findCatalogEntry(entryId).orElseThrow(ModelConfigurationNotFoundException::new);
-        var sourceId = Objects.requireNonNull(entry.sourceDeploymentId(), "目录缺少平台部署快照来源");
-        var sourceRevision = Objects.requireNonNull(entry.sourceDeploymentRevision(), "目录缺少平台部署快照修订");
-        var deployment = requirePlatformDeployments().findById(sourceId)
-                .filter(value -> value.version() == sourceRevision)
-                .filter(value -> value.status() == PlatformModelDeploymentStatus.PUBLISHED)
-                .filter(value -> value.verificationExpiresAt() != null && value.verificationExpiresAt().isAfter(clock.instant()))
-                .orElseThrow(() -> new IllegalStateException("平台模型部署不可用于发布目录"));
-        requirePlatformConnections().findById(deployment.providerConnectionId())
-                .filter(value -> value.version() == deployment.providerConnectionRevision())
-                .filter(value -> value.status() == ProviderConnectionStatus.VERIFIED)
-                .orElseThrow(() -> new IllegalStateException("平台供应商连接已变化或不可用"));
-        var published = entry.publish();
-        repository.updateCatalogEntry(published);
-        return published;
+        var entry = repository.findCatalogEntry(Objects.requireNonNull(entryId))
+                .filter(value -> value.status() == ControlledModelCatalogEntryStatus.PUBLISHED)
+                .filter(value -> value.sourceDeploymentId() != null && value.sourceDeploymentRevision() != null)
+                .orElseThrow(ModelConfigurationNotFoundException::new);
+        return repository.findPublishedByDeployment(entry.sourceDeploymentId(), entry.sourceDeploymentRevision())
+                .filter(value -> value.id().equals(entryId)).orElseThrow(ModelConfigurationNotFoundException::new);
     }
 
-    /**
-     * 向已认证成员提供来源当前可用的已发布目录分页，不暴露草稿条目或任何凭据材料。
-     */
-    public PageResult<ControlledModelCatalogEntry> listPublished(
-            TrustedRequestContext context, PageQuery page) {
+    /** 当前租户的来源和活动供应授权在服务端分页及同范围总数之前过滤。 */
+    public PageResult<ControlledModelCatalogEntry> listPublished(TrustedRequestContext context, PageQuery page) {
         Objects.requireNonNull(context, "可信请求上下文不能为空");
         Objects.requireNonNull(page, "分页请求不能为空");
-        var result = repository.findPublishedCatalogPage(
-                page.pageNumber(), page.pageSize());
+        var result = repository.findPublishedCatalogPage(context.tenantId(), page.pageNumber(), page.pageSize());
         return PageResult.of(result.items(), page, result.totalElements());
     }
 
-    private static void requirePlatformWrite(TrustedRequestContext context) {
-        if (context == null || !context.hasPermission(PLATFORM_WRITE)) {
-            throw new ModelCatalogPermissionDeniedException();
-        }
-    }
-
     private static void requirePlatformWrite(PlatformRequestContext context) {
-        if (context == null || !context.hasPermission(PLATFORM_WRITE)) {
+        if (context == null || !context.hasPermission(PlatformPermissions.MODEL_PLATFORM_WRITE))
             throw new ModelCatalogPermissionDeniedException();
-        }
-    }
-
-    private PlatformModelDeploymentRepository requirePlatformDeployments() {
-        if (platformDeployments == null) {
-            throw new IllegalStateException("当前目录服务未配置平台部署来源");
-        }
-        return platformDeployments;
-    }
-
-    private PlatformProviderConnectionRepository requirePlatformConnections() {
-        if (platformConnections == null) {
-            throw new IllegalStateException("当前目录服务未配置平台连接来源");
-        }
-        return platformConnections;
     }
 }

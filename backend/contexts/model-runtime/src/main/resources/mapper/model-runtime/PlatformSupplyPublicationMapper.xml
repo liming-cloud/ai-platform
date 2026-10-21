@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.mapper.PlatformSupplyPublicationMapper">
+    <select id="completeVerification" resultType="long" useCache="false" flushCache="true">
+        SELECT reservation.id FROM model_runtime.platform_model_capability_verification verification
+        JOIN model_runtime.platform_model_deployment_verification_audit audit ON audit.verification_id = verification.id
+        JOIN model_runtime.platform_capability_verification_reservation reservation ON reservation.id = audit.reservation_id
+        WHERE verification.id = #{d.lastVerificationId.value}
+          AND verification.platform_model_deployment_id = #{d.id.value}
+          AND verification.deployment_revision = #{d.version} - 1
+          AND verification.platform_provider_connection_id = #{d.providerConnectionId.value}
+          AND verification.platform_provider_connection_revision = #{d.providerConnectionRevision}
+          AND verification.model_code = #{d.modelCode} AND verification.succeeded = TRUE
+          AND verification.declared_capabilities = verification.observed_capabilities
+          AND verification.declared_capabilities::TEXT[] = ARRAY[#{d.modelType}]::TEXT[]
+          AND verification.result_code = 'S2_PASSED' AND verification.probed_at &lt;= #{now}
+          AND verification.expires_at = #{d.verificationExpiresAt} AND verification.expires_at &gt; #{now}
+          AND verification.expires_at &lt;= verification.probed_at + INTERVAL '24 hours'
+          AND audit.succeeded = TRUE AND audit.deployment_id = #{d.id.value}
+          AND reservation.deployment_id = #{d.id.value} AND reservation.deployment_revision = verification.deployment_revision
+          AND reservation.status = 'COMPLETED' AND reservation.outcome = 'PASSED' AND reservation.attempted_requests = 3
+          AND reservation.sample_version = #{sampleVersion}
+          AND reservation.expected_sample_digests = string_to_array(#{samples}, ',')
+          AND reservation.passed_sample_digests = reservation.expected_sample_digests
+          AND reservation.inputs_digest = #{inputs} AND reservation.target_fingerprint = #{target}
+          AND reservation.completed_at &lt; reservation.deadline AND reservation.completed_at &lt; reservation.quote_expires_at
+    </select>
+    <insert id="publish">
+        INSERT INTO model_runtime.platform_model_deployment_publication
+            (id, deployment_id, deployment_revision, verification_id, catalog_entry_id,
+             actor_subject_id, actor_permission_version, inputs_digest, published_at)
+        VALUES (#{id}, #{d.id.value}, #{d.version}, #{d.lastVerificationId.value}, #{catalogId},
+             #{actor.subjectId.value}, #{actor.permissionVersion}, #{inputs}, #{now})
+    </insert>
+    <insert id="grant">
+        INSERT INTO model_runtime.platform_model_supply_grant(publication_id, tenant_id, status, version, granted_at)
+        SELECT #{publicationId}, tenant_id, 'ACTIVE', 0, #{now}
+        FROM unnest(string_to_array(#{tenants}, ',')::BIGINT[]) AS tenant_id
+    </insert>
+    <select id="lockGrant" resultType="long" useCache="false" flushCache="true">
+        SELECT version FROM model_runtime.platform_model_supply_grant
+        WHERE publication_id = #{publicationId} AND tenant_id = #{tenantId} AND status = 'ACTIVE' FOR UPDATE
+    </select>
+    <update id="revoke">
+        UPDATE model_runtime.platform_model_supply_grant SET status = 'REVOKED', version = version + 1, revoked_at = #{now}
+        WHERE publication_id = #{publicationId} AND tenant_id = #{tenantId} AND status = 'ACTIVE' AND version = #{version}
+    </update>
+    <insert id="audit">
+        INSERT INTO model_runtime.platform_model_supply_audit
+            (id, deployment_id, publication_id, tenant_id, actor_subject_id, actor_permission_version, action, occurred_at)
+        VALUES (#{id}, #{deploymentId}, #{publicationId}, #{tenantId}, #{actor.subjectId.value},
+             #{actor.permissionVersion}, #{action}, #{now})
+    </insert>
+    <select id="facts" resultType="com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.entity.PlatformSupplyFactsRow"
+            useCache="false" flushCache="true">
+        SELECT p.id::TEXT AS publication_id, p.deployment_revision,
+            p.catalog_entry_id::TEXT AS catalog_entry_id, p.published_at,
+            (SELECT count(*) FROM model_runtime.platform_model_supply_grant g WHERE g.publication_id = p.id) AS selected_tenant_count,
+            (SELECT count(*) FROM model_runtime.platform_model_supply_grant g WHERE g.publication_id = p.id AND g.status = 'ACTIVE') AS active_grant_count,
+            (SELECT count(*) FROM model_runtime.platform_model_supply_grant g WHERE g.publication_id = p.id AND g.status = 'REVOKED') AS revoked_grant_count,
+            (SELECT count(*) FROM model_runtime.model_configuration c WHERE c.catalog_entry_id = p.catalog_entry_id) AS dependent_configuration_count,
+            COALESCE((SELECT string_agg(g.tenant_id::TEXT, ',' ORDER BY g.tenant_id)
+                FROM model_runtime.platform_model_supply_grant g WHERE g.publication_id = p.id AND g.status = 'ACTIVE'), '') AS active_tenant_ids,
+            EXISTS (SELECT catalog.id
+                <include refid="com.aiplatform.foundation.modelruntime.infrastructure.persistence.configuration.ControlledModelCatalogEntryMapper.publishedAvailableCatalogFrom"/>
+                AND publication.id = p.id) AS current_source_available
+        FROM model_runtime.platform_model_deployment_publication p WHERE p.deployment_id = #{deploymentId}
+          AND p.deployment_revision = (SELECT MAX(latest.deployment_revision)
+              FROM model_runtime.platform_model_deployment_publication latest WHERE latest.deployment_id = #{deploymentId})
+    </select>
+</mapper>

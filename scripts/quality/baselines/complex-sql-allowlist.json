@@ -950,12 +950,6 @@
       "reason": "关联目录快照、平台部署与连接，在分页前排除失效来源，避免租户选择不可调用模型。"
     },
     {
-      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/ControlledModelCatalogEntryMapper.xml",
-      "statementId": "countPublishedAvailable",
-      "category": "SECURITY_PROJECTION",
-      "reason": "使用与目录页相同的来源可用性谓词计算总数，避免分页元数据泄露或失真。"
-    },
-    {
       "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantLoginAttemptMapper.xml",
       "statementId": "findLockedUntil",
       "category": "SECURITY_PROJECTION",
@@ -1242,6 +1236,84 @@
       "statementId": "lockModelWriteSubject",
       "category": "ROW_LOCK",
       "reason": "ADR-0100／0082：组织所有者共用主体根锁复核当前平台模型管理权限，不读取密码摘要。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/ControlledModelCatalogEntryMapper.xml",
+      "statementId": "isSupplyAvailable",
+      "category": "SECURITY_PROJECTION",
+      "reason": "ADR-0095／0100：精确目录使用复核当前租户供应授权及完整发布来源，防止猜测 ID 绕过目录分页。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/ControlledModelCatalogEntryMapper.xml",
+      "statementId": "selectPublishedByDeployment",
+      "category": "SECURITY_PROJECTION",
+      "reason": "ADR-0100：旧目录写入口只读恢复独立原子发布的当前快照，不能生成第二份目录或扩大授权。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/PlatformSupplyPublicationMapper.xml",
+      "statementId": "completeVerification",
+      "category": "SECURITY_PROJECTION",
+      "reason": "ADR-0100：发布前绑定精确输入、完整固定三样本、预留终态和验证末尾审计，旧最小验证不能作为发布证明。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/PlatformSupplyPublicationMapper.xml",
+      "statementId": "publish",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "ADR-0095／0100：目录、独立发布、所选租户授权、部署 CAS 与安全审计在同一短事务提交。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/PlatformSupplyPublicationMapper.xml",
+      "statementId": "grant",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "ADR-0100：只将冻结计划集合一次写为当前发布的独立供应授权，任一失败全部回滚，不创建租户配置。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/PlatformSupplyPublicationMapper.xml",
+      "statementId": "lockGrant",
+      "category": "ROW_LOCK",
+      "reason": "ADR-0095：精确授权行锁保护一次撤权与版本裁决，不能创建关系、重新赋权或影响其他租户。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/PlatformSupplyPublicationMapper.xml",
+      "statementId": "revoke",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "ADR-0095：按活动授权与预期修订进行 CAS 撤销，保留历史和配置，末尾审计失败回滚。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/PlatformSupplyPublicationMapper.xml",
+      "statementId": "audit",
+      "category": "ATOMIC_STATE_TRANSITION",
+      "reason": "ADR-0100：发布、撤权和停用各自记录独立安全审计，失败必须回滚同一事务的全部状态。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/PlatformSupplyPublicationMapper.xml",
+      "statementId": "facts",
+      "category": "AGGREGATE",
+      "reason": "ADR-0095／0100：精确部署发布、活动及撤销授权、配置影响来自正式计数，不把计划集合当生效事实。"
+    },
+    {
+      "path": "backend/contexts/organization-access/src/main/resources/mapper/organization-access/TenantLifecycleReadMapper.xml",
+      "statementId": "isActive",
+      "category": "SECURITY_PROJECTION",
+      "reason": "ADR-0100：事实所有者只投影当前租户活动状态，只读进程不加共享锁，不返回租户内部模型。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/ControlledModelCatalogEntryMapper.xml",
+      "statementId": "lockSupplySource",
+      "category": "ROW_LOCK",
+      "reason": "ADR-0100：配置提交先共享锁定当前来源，轮换及新发现不能穿越命令提交。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/ControlledModelCatalogEntryMapper.xml",
+      "statementId": "lockSupplyDeployment",
+      "category": "ROW_LOCK",
+      "reason": "ADR-0095／0100：来源先于部署共享锁，与原子发布、停用及撤权保持同一根顺序。"
+    },
+    {
+      "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/ControlledModelCatalogEntryMapper.xml",
+      "statementId": "lockSupplyGrant",
+      "category": "ROW_LOCK",
+      "reason": "ADR-0095：配置保存、启用及既有配置授权在同一短事务共享锁定精确活动供应关系，撤权后不得继续提交。"
     }
   ]
 }

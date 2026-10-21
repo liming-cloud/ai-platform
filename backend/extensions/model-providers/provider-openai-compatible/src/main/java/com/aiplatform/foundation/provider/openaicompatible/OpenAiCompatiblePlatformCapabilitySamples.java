@@ -136,7 +136,10 @@ public final class OpenAiCompatiblePlatformCapabilitySamples implements Platform
         } catch (java.io.InterruptedIOException exception) {
             throw failure(Thread.currentThread().isInterrupted() ? Reason.CANCELLED : Reason.TIMEOUT);
         }
-        catch (java.io.IOException exception) { throw failure(Reason.RESPONSE_INVALID); }
+        catch (java.io.IOException exception) {
+            // 取消正文读取也可能抛普通 SocketException；不能依赖异常子类型丢失取消语义。
+            throw failure(Thread.currentThread().isInterrupted() ? Reason.CANCELLED : Reason.RESPONSE_INVALID);
+        }
     }
 
     private static PlatformCapabilityCallException normalized(RuntimeException exception) {

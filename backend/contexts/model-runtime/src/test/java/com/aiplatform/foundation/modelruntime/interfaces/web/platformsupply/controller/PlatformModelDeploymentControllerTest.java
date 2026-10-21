@@ -36,7 +36,11 @@ class PlatformModelDeploymentControllerTest {
                 .build();
         when(service.disable(any())).thenReturn(view("DISABLED", 3));
 
+        var continuity = mock(com.aiplatform.foundation.security.session.PlatformSessionContinuity.class);
+        when(continuity.matches(context)).thenReturn(true);
+        when(continuity.getAsBoolean()).thenReturn(true);
         mvc.perform(post("/api/v1/platform/model-supply/deployments/620000000000000001/disable")
+                        .requestAttr(com.aiplatform.foundation.security.session.PlatformSessionContinuity.REQUEST_ATTRIBUTE, continuity)
                         .param("tenantId", "100000000000000099")
                         .contentType("application/json")
                         .content("{\"expectedVersion\":2}"))
@@ -53,6 +57,37 @@ class PlatformModelDeploymentControllerTest {
         org.junit.jupiter.api.Assertions.assertEquals(2L, command.getValue().expectedVersion());
     }
 
+
+    @Test
+    void 正文不能伪造发布撤权或停用的服务端会话证明() throws Exception {
+        var service = mock(PlatformModelDeploymentService.class);
+        var context = mock(PlatformRequestContext.class);
+        var mvc = MockMvcBuilders.standaloneSetup(new PlatformModelDeploymentController(service))
+                .setCustomArgumentResolvers(platformContext(context)).build();
+        for (var suffix : new String[]{"publish", "disable", "grants/201/revoke"}) {
+            var error = org.junit.jupiter.api.Assertions.assertThrows(jakarta.servlet.ServletException.class,
+                    () -> mvc.perform(post("/api/v1/platform/model-supply/deployments/620000000000000001/" + suffix)
+                            .contentType("application/json")
+                            .content("{\"expectedVersion\":2,\"expectedGrantVersion\":0,\"sessionActive\":true}")));
+            org.junit.jupiter.api.Assertions.assertInstanceOf(com.aiplatform.foundation.security.session.InvalidAuthenticatedSessionException.class, error.getCause());
+        }
+        org.mockito.Mockito.verifyNoInteractions(service);
+    }
+
+    @Test
+    void 撤权只转发精确部署租户和两个修订并保留服务端证明() throws Exception {
+        var service = mock(PlatformModelDeploymentService.class);
+        var context = mock(PlatformRequestContext.class);
+        var continuity = mock(com.aiplatform.foundation.security.session.PlatformSessionContinuity.class);
+        when(continuity.matches(context)).thenReturn(true);
+        var mvc = MockMvcBuilders.standaloneSetup(new PlatformModelDeploymentController(service))
+                .setCustomArgumentResolvers(platformContext(context)).build();
+        mvc.perform(post("/api/v1/platform/model-supply/deployments/620000000000000001/grants/201/revoke")
+                        .requestAttr(com.aiplatform.foundation.security.session.PlatformSessionContinuity.REQUEST_ATTRIBUTE, continuity)
+                        .contentType("application/json").content("{\"expectedVersion\":2,\"expectedGrantVersion\":0}"))
+                .andExpect(status().isNoContent());
+        verify(service).revokeSupply(context, "620000000000000001", 201L, 2L, 0L, continuity);
+    }
 
     private static PlatformModelDeploymentView view(String status, long version) {
         return new PlatformModelDeploymentView("620000000000000001", "610000000000000001", 1,
