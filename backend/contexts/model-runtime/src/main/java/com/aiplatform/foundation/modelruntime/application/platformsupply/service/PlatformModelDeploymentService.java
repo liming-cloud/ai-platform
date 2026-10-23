@@ -192,7 +192,8 @@ public final class PlatformModelDeploymentService {
     private PlatformModelDeployment load(String id, long expectedVersion) {
         var deployment = deployments.findById(PlatformModelDeploymentId.parse(id))
                 .orElseThrow(() -> new IllegalArgumentException("平台模型部署不存在"));
-        if (deployment.version() != expectedVersion) throw new IllegalStateException("平台模型部署修订已变化");
+        if (deployment.version() != expectedVersion)
+            throw new com.aiplatform.foundation.modelruntime.application.deployment.exception.ModelDeploymentConcurrentModificationException();
         return deployment;
     }
 

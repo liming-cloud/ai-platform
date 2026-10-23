@@ -11,6 +11,7 @@ import com.aiplatform.foundation.modelruntime.application.platformsupply.port.ou
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapability;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelCapabilityObservation;
 import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelType;
+import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelDeploymentStateException;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDeployment;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDeploymentId;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelCapabilityVerificationId;
@@ -390,7 +391,7 @@ class PostgresPlatformModelDeploymentRepositoryTest {
     @Test void 缺末尾验证审计或固定样本证明不能发布() {
         var d = verifiedPublication("缺失证明模型", false);
         jdbc.update("DELETE FROM model_runtime.platform_model_deployment_verification_audit");
-        assertThrows(IllegalStateException.class, () -> supply.publish(actor(), d, () -> true));
+        assertThrows(ModelDeploymentStateException.class, () -> supply.publish(actor(), d, () -> true));
         assertEquals(0L, count("controlled_model_catalog_entry")); assertEquals("VERIFIED", status(d));
     }
 
@@ -398,7 +399,7 @@ class PostgresPlatformModelDeploymentRepositoryTest {
         var d = verifiedPublication("声明变化模型", false);
         jdbc.update("UPDATE model_runtime.platform_model_deployment SET context_window = context_window + 1 WHERE id = ?", d.id().value());
         var current = deployments.findById(d.id()).orElseThrow();
-        assertThrows(IllegalStateException.class, () -> supply.publish(actor(), current, () -> true));
+        assertThrows(ModelDeploymentStateException.class, () -> supply.publish(actor(), current, () -> true));
         assertEquals(0L, count("platform_model_supply_grant"));
     }
 
@@ -437,11 +438,11 @@ class PostgresPlatformModelDeploymentRepositoryTest {
         assertEquals(1L, catalog.findPublishedCatalogPage(tenant, 1, 1).totalElements());
         assertEquals(0L, catalog.findPublishedCatalogPage(other, 1, 1).totalElements());
         assertTrue(catalog.isSupplyAvailable(tenant, entry)); assertFalse(catalog.isSupplyAvailable(other, entry));
-        assertThrows(IllegalStateException.class, () -> supply.revoke(actor(), d.id(), 202L, published.version(), 0, () -> true));
+        assertThrows(ModelDeploymentStateException.class, () -> supply.revoke(actor(), d.id(), 202L, published.version(), 0, () -> true));
         supply.revoke(actor(), d.id(), 201L, published.version(), 0, () -> true);
         assertFalse(catalog.isSupplyAvailable(tenant, entry));
         assertEquals(0L, catalog.findPublishedCatalogPage(tenant, 1, 1).totalElements());
-        assertThrows(IllegalStateException.class, () -> supply.revoke(actor(), d.id(), 201L, published.version(), 0, () -> true));
+        assertThrows(ModelDeploymentStateException.class, () -> supply.revoke(actor(), d.id(), 201L, published.version(), 0, () -> true));
         assertEquals(1L, supply.facts(d.id()).orElseThrow().revokedGrantCount());
         supply.disable(actor(), published, () -> true);
         assertEquals("DISABLED", status(d)); assertEquals(1L, count("platform_model_deployment_publication"));
@@ -498,7 +499,7 @@ class PostgresPlatformModelDeploymentRepositoryTest {
         var d = verifiedPublication("伪造三样本模型", false);
         var fake = "a".repeat(64) + "," + "b".repeat(64) + "," + "c".repeat(64);
         jdbc.update("UPDATE model_runtime.platform_capability_verification_reservation SET expected_sample_digests = string_to_array(?, ','), passed_sample_digests = string_to_array(?, ',')", fake, fake);
-        assertThrows(IllegalStateException.class, () -> supply.publish(actor(), d, () -> true));
+        assertThrows(ModelDeploymentStateException.class, () -> supply.publish(actor(), d, () -> true));
         assertEquals(0L, count("platform_model_deployment_publication"));
     }
 

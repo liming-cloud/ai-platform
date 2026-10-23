@@ -9,6 +9,7 @@ import com.aiplatform.foundation.modelruntime.domain.configuration.model.Control
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ControlledModelCatalogEntryId;
 import com.aiplatform.foundation.modelruntime.domain.configuration.model.ModelRuntimeCapabilities;
 import com.aiplatform.foundation.modelruntime.domain.configuration.repository.ModelConfigurationRepository;
+import com.aiplatform.foundation.modelruntime.domain.deployment.model.ModelDeploymentStateException;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDeployment;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDeploymentId;
 import com.aiplatform.foundation.modelruntime.domain.platformsupply.model.PlatformModelDeploymentStatus;
@@ -71,13 +72,15 @@ public final class PostgresPlatformModelSupplyPublicationStore implements Platfo
             var now = clock.instant();
             requireSource(expected, now);
             var current = lock(expected.id(), expected.version());
+            // 可预期的业务状态冲突沿既有错误码返回 409；持久化或审计故障仍保留服务端错误。
             if (current.inputs() == null || current.status() != PlatformModelDeploymentStatus.VERIFIED
                     || !Objects.equals(current.inputs(), expected.inputs())
                     || !PlatformModelProbeProviderService.verificationTargetFingerprint(current, current.version()).equals(
                             PlatformModelProbeProviderService.verificationTargetFingerprint(expected, expected.version())))
-                throw new IllegalStateException("没有完整当前验证或声明已变化");
+                throw new ModelDeploymentStateException("没有完整当前验证或声明已变化");
             var inputs = PlatformModelProbeProviderService.verificationInputsDigest(current);
-            if (verificationId(current, inputs, now) == null) throw new IllegalStateException("没有绑定当前输入的完整三样本验证与审计");
+            if (verificationId(current, inputs, now) == null)
+                throw new ModelDeploymentStateException("没有绑定当前输入的完整三样本验证与审计");
             Objects.requireNonNull(tenants.get(), "活动租户事实不可用").requireActive(current.inputs().plannedTenantIds());
             var featureOwner = Objects.requireNonNull(features.get(), "当前租户功能事实不可用");
             for (long tenantId : current.inputs().plannedTenantIds().stream().sorted().toList())
@@ -134,7 +137,7 @@ public final class PostgresPlatformModelSupplyPublicationStore implements Platfo
             long publicationId = Long.parseLong(fact.publicationId());
             if (!Objects.equals(mapper.lockGrant(publicationId, tenantId), grantVersion)
                     || mapper.revoke(publicationId, tenantId, grantVersion, clock.instant()) != 1)
-                throw new IllegalStateException("供应授权不存在、已撤销或修订已变化");
+                throw new ModelDeploymentStateException("供应授权不存在、已撤销或修订已变化");
             audit(actor, id, publicationId, tenantId, "REVOKE");
             live(session);
         });
