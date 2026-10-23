@@ -1125,9 +1125,9 @@
     },
     {
       "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/PlatformModelDeploymentMapper.xml",
-      "statementId": "selectPage",
+      "statementId": "selectDirectoryPage",
       "category": "POSTGRES_TYPE",
-      "reason": "WP-0019 S2 / ADR-0100：数组安全投影使用 MyBatis-Plus 页码分页与总数，不手写 LIMIT/OFFSET。"
+      "reason": "WP-0019 S2 / ADR-0100、0102：保留数组安全投影，固定名称／驻留条件由 infrastructure Wrapper 绑定；MyBatis-Plus 生成分页与同范围总数，不手写 LIMIT/OFFSET。"
     },
     {
       "path": "backend/contexts/model-runtime/src/main/resources/mapper/model-runtime/PlatformModelDeploymentMapper.xml",

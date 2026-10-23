@@ -54,10 +54,12 @@ async function open(state = "success", detail = false, width = 1440, duplicateTe
   const page = await browser.newPage({ viewport: { width, height: 1000 }, reducedMotion: "reduce" });
   const errors = []; page.on("pageerror", error => errors.push(error.name));
   let writes = 0, created, writtenInput;
+  const searchItems = Array.from({ length: 21 }, (_, index) => ({ ...deployment, id: String(1001 + index), displayName: `合成目录 ${index}` }));
   await page.route("**/api/v1/**", async route => {
     const request = route.request(), pathname = new URL(request.url()).pathname;
     const reply = (status, body) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
     if (state === "denied" && pathname.endsWith("/facts")) return reply(403, { code: "SYNTHETIC_DENIED", message: "合成拒绝", traceId: "trc_synthetic" });
+    if (state === "search" && pathname.endsWith("/facts")) return reply(200, { writesAvailable: true, counts: { total: 21, drafts: 21, verified: 0, published: 0, disabled: 0 } });
     if (pathname.endsWith("/facts")) return state === "partial" ? reply(503, { code: "SYNTHETIC_UNAVAILABLE", message: "合成不可用", traceId: "trc_synthetic" })
       : reply(200, { writesAvailable: state !== "disabled", counts: { total: 1, drafts: 1, verified: 0, published: 0, disabled: 0 } });
     if (pathname.endsWith("/candidates")) return reply(200, pageOf(options, 100));
@@ -71,6 +73,16 @@ async function open(state = "success", detail = false, width = 1440, duplicateTe
       await new Promise(resolve => setTimeout(resolve, 350)); return reply(201, created);
     }
     if (pathname === "/api/v1/platform/model-supply/deployments" || /\/deployments\/\d+$/.test(pathname)) {
+      if (state === "search") {
+        if (/\/\d+$/.test(pathname)) return reply(200, searchItems.find(item => pathname.endsWith("/" + item.id)) ?? deployment);
+        const parameters = new URL(request.url()).searchParams;
+        const q = (parameters.get("q") ?? "").trim().toLowerCase();
+        if (q === "迟到") await new Promise(resolve => setTimeout(resolve, 600));
+        const items = searchItems.filter(item => [item.displayName, item.inputs.residency].some(text => text.toLowerCase().includes(q)));
+        const number = Number(parameters.get("pageNumber")), size = Number(parameters.get("pageSize"));
+        return reply(200, { items: items.slice((number - 1) * size, number * size), pageNumber: number, pageSize: size,
+          totalElements: items.length, totalPages: Math.ceil(items.length / size), hasPrevious: number > 1, hasNext: number * size < items.length });
+      }
       if (state === "loading") return new Promise(resolve => { releases.push(() => route.abort().catch(() => {}).finally(resolve)); });
       if (state === "error") return reply(500, { code: "SYNTHETIC_FAILURE", message: "合成失败", traceId: "trc_synthetic" });
       if (state === "empty" && /\/\d+$/.test(pathname)) return reply(404, { code: "MODEL_RUNTIME.RESOURCE.0002", message: "合成不存在", traceId: "trc_synthetic" });
@@ -80,9 +92,52 @@ async function open(state = "success", detail = false, width = 1440, duplicateTe
   });
   await page.goto(origin, { waitUntil: "domcontentloaded" }); await page.waitForFunction(() => typeof window.start === "function");
   if (detail) await page.evaluate(() => window.start(true));
-  await page.locator(`.platform-deployment-page[data-read-state="${state === "success" || (state === "empty" && !detail) ? "ready" : state}"]`).waitFor();
+  await page.locator(`.platform-deployment-page[data-read-state="${state === "success" || state === "search" || (state === "empty" && !detail) ? "ready" : state}"]`).waitFor();
   return { page, errors, writes: () => writes, writtenInput: () => writtenInput };
 }
+
+test("S2 搜索连续输入、分页重置和零匹配恢复", async () => {
+  const { page, errors, writes } = await open("search");
+  try {
+    const search = page.getByRole("searchbox", { name: "搜索当前目录" });
+    await search.focus(); await search.pressSequentially("合成", { delay: 30 });
+    await page.waitForFunction(() => window.route.query === "合成" && document.querySelector('.platform-deployment-page')?.dataset.readState === "ready");
+    assert.equal(await search.inputValue(), "合成"); assert.equal(await search.evaluate(input => document.activeElement === input), true);
+    await page.getByRole("combobox", { name: "每页条数" }).selectOption("10");
+    await page.getByRole("button", { name: "第 3 页", exact: true }).click();
+    await page.waitForFunction(() => window.route.deploymentPage === 3 && document.querySelector('.platform-deployment-page')?.dataset.readState === "ready");
+    await search.fill("北京");
+    await page.waitForFunction(() => window.route.query === "北京" && window.route.deploymentPage === 1 && document.querySelector('.platform-deployment-page')?.dataset.readState === "ready");
+    assert.equal(await page.getByText("共 21 条 · 1–10 条", { exact: true }).count(), 1);
+    await search.fill("DRAFT");
+    await page.getByText("没有匹配记录，请调整筛选条件或返回目录。", { exact: true }).waitFor();
+    assert.equal(await page.getByText("当前还没有平台模型部署。", { exact: false }).count(), 0);
+    await search.fill("");
+    await page.getByText("共 21 条 · 1–10 条", { exact: true }).waitFor();
+    assert.equal(writes(), 0); assert.deepEqual(errors, []);
+  } finally { await page.close(); }
+});
+
+test("S2 搜索迟到结果隔离及详情返回查询恢复", async () => {
+  const { page, errors, writes } = await open("search");
+  try {
+    const search = page.getByRole("searchbox", { name: "搜索当前目录" });
+    const oldRequest = page.waitForRequest(request => new URL(request.url()).searchParams.get("q") === "迟到");
+    await search.fill("迟到"); await oldRequest;
+    await search.fill("合成目录");
+    await page.getByText("共 21 条 · 1–20 条", { exact: true }).waitFor();
+    await page.waitForTimeout(700);
+    assert.equal(await page.getByText("没有匹配记录，请调整筛选条件或返回目录。", { exact: true }).count(), 0);
+    await page.getByRole("button", { name: "查看合成目录 0", exact: true }).click();
+    await page.getByRole("heading", { name: "合成目录 0", exact: true }).waitFor();
+    assert.equal(await page.evaluate(() => window.route.query), "合成目录");
+    await page.getByRole("button", { name: "返回部署目录", exact: true }).first().click();
+    await page.getByRole("searchbox", { name: "搜索当前目录" }).waitFor();
+    assert.equal(await page.getByRole("searchbox", { name: "搜索当前目录" }).inputValue(), "合成目录");
+    await page.getByText("共 21 条 · 1–20 条", { exact: true }).waitFor();
+    assert.equal(writes(), 0); assert.deepEqual(errors, []);
+  } finally { await page.close(); }
+});
 
 test("S2 两页七态、三尺寸与原生两档文字", async () => {
   for (const state of ["loading", "empty", "success", "partial", "disabled", "error", "denied"]) for (const detail of [false, true]) for (const width of [390, 1024, 1440]) for (const scale of [1, 2]) {

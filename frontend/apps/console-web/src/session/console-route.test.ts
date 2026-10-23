@@ -450,6 +450,18 @@ describe("统一控制台路由", () => {
       .toBe("/platform/model-supply?page=3");
   });
 
+  it("部署目录和精确详情恢复同一名称摘要查询", () => {
+    const query = "中文 %_\\&";
+    const directory = parseConsoleRoute("/platform/model-supply/deployments", `?deploymentPage=3&size=10&q=${encodeURIComponent(query)}`);
+    expect(directory).toMatchObject({ task: "deployments", deploymentPage: 3, pageSize: 10, query });
+    const detail = parseConsoleRoute("/platform/model-supply/deployments/123", `?directoryPage=3&size=10&directoryQuery=${encodeURIComponent(query)}`);
+    expect(detail).toMatchObject({ task: "deployment-detail", directoryPage: 3, pageSize: 10, query });
+    for (const route of [directory!, detail!]) {
+      const url = new URL(formatConsoleRoute(route), "http://localhost");
+      expect(parseConsoleRoute(url.pathname, url.search)).toEqual(route);
+    }
+  });
+
   it("平台部署任务从 URL 恢复连接修订与两组服务端页码", () => {
     expect(parseConsoleRoute(
       "/platform/model-supply/deployments",

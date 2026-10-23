@@ -300,6 +300,9 @@ class PlatformModelDeploymentServiceTest {
                 sessionWithoutPlatformModelWrite(), "620000000000000001", 0L, Duration.ofSeconds(5), () -> true)));
         assertThrows(ModelCatalogPermissionDeniedException.class, () -> service.publish(new PublishPlatformModelDeploymentCommand(
                 sessionWithoutPlatformModelWrite(), "620000000000000001", 1L)));
+        assertThrows(ModelCatalogPermissionDeniedException.class, () -> service.list(
+                new com.aiplatform.foundation.modelruntime.application.platformsupply.query.ListPlatformModelDeploymentsQuery(
+                        sessionWithoutPlatformModelWrite(), new com.aiplatform.foundation.shared.contract.paging.PageQuery(1, 20), "名称")));
         verifyNoInteractions(publications);
     }
 
@@ -313,7 +316,7 @@ class PlatformModelDeploymentServiceTest {
         @Override public com.aiplatform.foundation.modelruntime.domain.platformsupply.repository.PlatformModelDeploymentCounts counts() { throw new AssertionError("无权请求不得读取摘要"); }
         @Override public PlatformModelDeploymentCreationOutcome create(PlatformModelDeploymentCreation creation) { throw new AssertionError("无权请求不得写入平台部署"); }
         @Override public Optional<PlatformModelDeployment> findById(PlatformModelDeploymentId id) { throw new AssertionError("无权请求不得读取平台部署"); }
-        @Override public PlatformModelDeploymentPage findPage(long pageNumber, long pageSize) { throw new AssertionError("无权请求不得读取平台部署"); }
+        @Override public PlatformModelDeploymentPage findPage(long pageNumber, long pageSize, String q) { throw new AssertionError("无权请求不得读取平台部署"); }
         @Override public boolean update(PlatformModelDeployment deployment, long expectedVersion) { throw new AssertionError("无权请求不得更新平台部署"); }
     }
     private static final class ForbiddenConnectionRepository implements PlatformProviderConnectionRepository {

@@ -13,8 +13,8 @@
     <select id="selectById" resultType="com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.entity.PlatformModelDeploymentRow">
         SELECT <include refid="projection"/> FROM model_runtime.platform_model_deployment WHERE id = #{id} AND scope = 'PLATFORM'
     </select>
-    <select id="selectPage" resultType="com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.entity.PlatformModelDeploymentRow">
-        SELECT <include refid="projection"/> FROM model_runtime.platform_model_deployment WHERE scope = 'PLATFORM' ORDER BY created_at DESC, id DESC
+    <select id="selectDirectoryPage" resultType="com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.entity.PlatformModelDeploymentRow">
+        SELECT <include refid="projection"/> FROM model_runtime.platform_model_deployment ${ew.customSqlSegment}
     </select>
     <select id="lastVerifiedAt" resultType="java.time.Instant">
         SELECT verification.probed_at FROM model_runtime.platform_model_deployment deployment

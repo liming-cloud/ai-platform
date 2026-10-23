@@ -83,10 +83,17 @@ public final class PostgresPlatformModelDeploymentRepository implements Platform
     }
 
     @Override
-    public PlatformModelDeploymentPage findPage(long number, long size) {
-        if (number < 1 || size < 1 || size > 100) throw new IllegalArgumentException("分页参数不正确");
+    public PlatformModelDeploymentPage findPage(long number, long size, String q) {
+        if (number < 1 || size < 1 || size > 100 || (number - 1) > 100_000 / size) throw new IllegalArgumentException("分页参数不正确");
+        var pattern = "%" + Objects.requireNonNull(q, "搜索词不能为空")
+                .replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%";
+        // 固定字段和绑定参数限定搜索面；同一只读快照的分页与计数共用条件。
+        var filter = Wrappers.<PlatformModelDeploymentEntity>lambdaQuery()
+                .eq(PlatformModelDeploymentEntity::getScope, "PLATFORM")
+                .apply("(display_name ILIKE {0} ESCAPE '\\' OR residency ILIKE {0} ESCAPE '\\')", pattern)
+                .orderByDesc(PlatformModelDeploymentEntity::getCreatedAt, PlatformModelDeploymentEntity::getId);
         return Objects.requireNonNull(reads.execute(status -> {
-            var page = mapper.selectPage(new Page<PlatformModelDeploymentRow>(number, size));
+            var page = mapper.selectDirectoryPage(new Page<PlatformModelDeploymentRow>(number, size), filter);
             return new PlatformModelDeploymentPage(page.getRecords().stream().map(PostgresPlatformModelDeploymentRepository::toDomain).toList(), page.getTotal());
         }));
     }

@@ -13,7 +13,7 @@ const longId = value => typeof value === "string" && /^[1-9][0-9]{0,18}$/.test(v
 function configuration(environment = process.env) {
   requireCondition(!environment.SETUP, "S2 不接受外部 SETUP");
   const mode = environment.FOUNDATION_ACCEPTANCE_MODE ?? "read-only";
-  requireCondition(["read-only", "create-draft"].includes(mode), "S2 当前只允许 read-only 或 create-draft；真实推理、发布和赋权另行确认");
+  requireCondition(["read-only", "directory-search", "create-draft"].includes(mode), "S2 只允许 read-only、directory-search 或 create-draft；真实推理、发布和赋权另行确认");
   const revisions = [environment.FOUNDATION_ACCEPTANCE_FRONTEND_REVISION, environment.FOUNDATION_ACCEPTANCE_BACKEND_REVISION];
   requireCondition(revisions.every(value => typeof value === "string" && /^[a-f0-9]{40}$/.test(value)), "必须分别绑定前后端精确运行提交");
   const base = readConfiguration(environment);
@@ -83,6 +83,13 @@ async function run(config) {
       await route.continue();
     });
     await check("当前部署平台会话", async () => { await openLogin(page, config, "platform"); await fillLogin(page, config.credentials.platform, "platform"); await submitLogin(page); await assertIdentity(page, "platform"); });
+    if (config.mode === "directory-search") {
+      report.scope = "WP-0019/S2 部署目录名称／摘要搜索";
+      await searchAcceptance(page, config, report, directory, check, secrets);
+      requireCondition(writes === 0, "搜索验收不能产生业务写入");
+      report.completed = true; report.writes = writes; persist();
+      return report;
+    }
     await check("部署目录与独立安全事实", async () => {
       await page.goto(config.baseUrl + "/platform/model-supply/deployments", { waitUntil: "networkidle" });
       await page.getByRole("heading", { name: "平台模型部署", exact: true }).waitFor();
@@ -242,6 +249,72 @@ async function run(config) {
     }
     throw new SafeAssertionError(`S2 验收未完成：${stage}`);
   } finally { try { await cache?.close(); } finally { if (descriptor !== undefined) fs.closeSync(descriptor); } }
+}
+
+/** 只重验搜索增量；现有数据提供查询输入，不能删数据制造空目录或触发验证／发布。 */
+async function searchAcceptance(page, config, report, directory, check, secrets) {
+  const url = config.baseUrl + "/platform/model-supply/deployments";
+  const ready = () => page.locator('.platform-deployment-page[data-read-state="ready"]').waitFor();
+  let target, query, before;
+  await check("名称与驻留摘要由正式服务端筛选", async () => {
+    await page.goto(url, { waitUntil: "networkidle" }); await ready();
+    before = await request(page, api);
+    const facts = await request(page, api + "/facts");
+    requireCondition(before.status === 200 && before.body.items.length > 0 && facts.status === 200, "搜索验收需要既有可读部署");
+    target = before.body.items[0]; query = Array.from(target.displayName).slice(0, 32).join("");
+    for (const q of [query, target.inputs?.residency].filter(Boolean).map(value => Array.from(value).slice(0, 64).join(""))) {
+      const result = await request(page, api + "?q=" + encodeURIComponent(q)); assertSafeResponse(result, secrets);
+      requireCondition(result.status === 200 && result.body.items.some(item => item.id === target.id)
+        && result.body.items.every(item => [item.displayName, item.inputs?.residency ?? ""].some(value => value.toLowerCase().includes(q.toLowerCase()))), "名称／驻留筛选或公开字段范围不正确");
+    }
+    report.search = { targetId: target.id, unfilteredTotal: before.body.totalElements, counts: facts.body.counts };
+  });
+  await check("搜索 URL 刷新和详情返回恢复", async () => {
+    const input = page.getByRole("searchbox", { name: "搜索当前目录" });
+    await input.fill(query); await page.waitForURL(current => current.searchParams.get("q") === query); await ready();
+    await page.getByRole("button", { name: "查看" + target.displayName, exact: true }).waitFor();
+    await page.reload({ waitUntil: "networkidle" }); await ready();
+    requireCondition(await input.inputValue() === query, "刷新丢失查询");
+    await page.getByRole("button", { name: "查看" + target.displayName, exact: true }).click();
+    await page.getByRole("heading", { name: target.displayName, exact: true }).waitFor();
+    requireCondition(new URL(page.url()).searchParams.get("directoryQuery") === query, "精确详情未保留查询");
+    await page.getByRole("button", { name: "返回部署目录", exact: true }).first().click(); await ready();
+    requireCondition(await input.inputValue() === query, "返回目录丢失查询");
+    await page.goBack({ waitUntil: "networkidle" });
+    await page.getByRole("heading", { name: target.displayName, exact: true }).waitFor();
+    await page.goForward({ waitUntil: "networkidle" }); await ready();
+    requireCondition(await input.inputValue() === query, "前进后退丢失查询");
+  });
+  await check("零匹配保留目录恢复而不伪造空目录", async () => {
+    const q = "s2-no-match-" + require("node:crypto").randomUUID();
+    const input = page.getByRole("searchbox", { name: "搜索当前目录" });
+    await input.fill(q); await ready();
+    await page.getByText("没有匹配记录，请调整筛选条件或返回目录。", { exact: true }).waitFor();
+    const result = await request(page, api + "?q=" + q);
+    requireCondition(result.status === 200 && result.body.totalElements === 0 && result.body.items.length === 0
+      && await page.getByRole("region", { name: "空状态", exact: true }).count() === 0, "零匹配被当成真实空目录");
+    await input.fill(""); await ready();
+    const after = await request(page, api);
+    requireCondition(after.status === 200 && after.body.totalElements === before.body.totalElements
+      && after.body.items.some(item => item.id === target.id), "清除查询后原目录未恢复");
+    report.search.afterTotal = after.body.totalElements;
+    requireCondition((await request(page, api + "?q=" + "x".repeat(65))).status === 400, "超长查询未被正式接口拒绝");
+  });
+  await check("搜索区域三尺寸原生文字及键盘", async () => {
+    for (const width of [390, 1024, 1440]) for (const textScale of [1, 2]) {
+      await page.setViewportSize({ width, height: 1000 }); await page.goto(url + "?q=" + encodeURIComponent(query), { waitUntil: "networkidle" }); await ready();
+      if (textScale === 2) await enlargeText(page);
+      const input = page.getByRole("searchbox", { name: "搜索当前目录" }); await input.focus();
+      requireCondition(await input.evaluate(element => document.activeElement === element), "键盘不能定位搜索输入");
+      await page.keyboard.press("Tab");
+      const facts = await layout(page), font = await input.evaluate(element => parseFloat(getComputedStyle(element).fontSize));
+      requireCondition(!facts.overflow && !facts.clipped.length && facts.reducedMotion && font >= 16 * textScale, "搜索区域存在裁切、遮挡或文字未放大");
+      const screenshot = path.join(directory, `search-${width}-${textScale}.png`);
+      await page.screenshot({ path: screenshot, fullPage: true }); fs.chmodSync(screenshot, 0o600);
+      report.observations.push({ view: "directory-search", width, textScale, layout: facts, screenshot,
+        label: await page.locator('.platform-connection-search label span').evaluate(styleFacts), input: await input.evaluate(styleFacts) });
+    }
+  });
 }
 
 async function layout(page) {

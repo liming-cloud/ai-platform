@@ -7,6 +7,20 @@ import {
 } from "./control-plane-client";
 
 describe("ControlPlaneClient", () => {
+  it("部署名称摘要查询只编码为有界目录的只读参数", async () => {
+    const requests: Request[] = [];
+    const client = authenticatedClient(async (input, init) => {
+      requests.push(new Request(input, init)); return Response.json({});
+    });
+    await client.listPlatformModelDeployments(3, 10, "中文 %_\\&");
+    const query = new URL(requests[0]!.url).searchParams;
+    expect([...query.keys()].sort()).toEqual(["pageNumber", "pageSize", "q"]);
+    expect(query.get("q")).toBe("中文 %_\\&");
+    expect(query.get("pageNumber")).toBe("3");
+    expect(requests[0]!.method).toBe("GET");
+    expect(requests[0]!.body).toBeNull();
+    expect(requests[0]!.headers.get("X-Tenant-Id")).toBeNull();
+  });
   it("将发送阶段网络失败标识为可区分的安全错误，不泄漏底层消息", async () => {
     const client = authenticatedClient(async () => { throw new TypeError("synthetic-network-private-detail"); });
     await expect(client.getPlatformProviderConnectionDirectorySummary()).rejects.toEqual(

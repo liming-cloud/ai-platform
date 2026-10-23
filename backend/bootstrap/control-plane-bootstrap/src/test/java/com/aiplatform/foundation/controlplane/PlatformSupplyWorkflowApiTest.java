@@ -150,6 +150,35 @@ class PlatformSupplyWorkflowApiTest {
         }
     }
 
+    @Test
+    void 部署目录搜索沿用平台权限分页和安全公开字段且零外呼() {
+        var term = "Search" + UUID.randomUUID().toString().replace("-", "");
+        for (int i = 0; i < 2; i++) {
+            var body = draft(Type.CHAT, Type.CHAT.code());
+            body.put("displayName", term + i);
+            create(platform, body, UUID.randomUUID().toString());
+        }
+        var first = get(ROOT + "?q=" + term.toLowerCase(java.util.Locale.ROOT) + "&pageSize=1", platform);
+        var second = get(ROOT + "?q=" + term + "&pageNumber=2&pageSize=1", platform);
+        assertEquals(2L, first.path("totalElements").asLong());
+        assertEquals(2L, second.path("totalElements").asLong());
+        assertEquals(1, first.path("items").size()); assertEquals(1, second.path("items").size());
+        assertNotEquals(first.path("items").get(0).path("id"), second.path("items").get(0).path("id"));
+        assertFalse(first.toString().contains("credentialReference"));
+        assertFalse(first.toString().contains("endpoint"));
+        assertEquals(0, get(ROOT + "?q=" + term + "nomatch", platform).path("items").size());
+        var headers = new HttpHeaders(); headers.setBearerAuth(platform);
+        assertEquals(HttpStatus.BAD_REQUEST, http.exchange(ROOT + "?q=" + "x".repeat(65), HttpMethod.GET,
+                new HttpEntity<>(headers), JsonNode.class).getStatusCode());
+        assertEquals(HttpStatus.BAD_REQUEST, http.exchange(ROOT + "?pageNumber=10002&pageSize=10", HttpMethod.GET,
+                new HttpEntity<>(headers), JsonNode.class).getStatusCode());
+        assertEquals(HttpStatus.UNAUTHORIZED, http.getForEntity(ROOT + "?q=" + term, JsonNode.class).getStatusCode());
+        headers.setBearerAuth(store);
+        assertEquals(HttpStatus.UNAUTHORIZED, http.exchange(ROOT + "?q=" + term, HttpMethod.GET,
+                new HttpEntity<>(headers), JsonNode.class).getStatusCode());
+        assertEquals(0, CALLS.get());
+    }
+
     @ParameterizedTest
     @EnumSource(Type.class)
     void 三类协议经正式接口完成验证发布租户可见性与撤权(Type type) {

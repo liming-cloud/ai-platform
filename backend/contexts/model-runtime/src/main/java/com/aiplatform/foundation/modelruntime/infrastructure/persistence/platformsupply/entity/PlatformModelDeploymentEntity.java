@@ -15,6 +15,11 @@ public class PlatformModelDeploymentEntity {
     private Long lastVerificationId;
     @com.baomidou.mybatisplus.annotation.TableField("verification_expires_at")
     private java.time.Instant verificationExpiresAt;
+    @com.baomidou.mybatisplus.annotation.TableField("created_at")
+    private java.time.Instant createdAt;
+
+    public java.time.Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(java.time.Instant value) { this.createdAt = value; }
 
     public Long getId() { return id; }
     public void setId(Long value) { this.id = value; }

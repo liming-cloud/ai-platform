@@ -188,8 +188,8 @@ class PostgresPlatformModelDeploymentRepositoryTest {
         var created = deployments.create(creation("snapshot-request-01", "b".repeat(64), "完整声明部署")).deployment();
         var restored = deployments.findById(created.id()).orElseThrow();
         assertEquals(created.inputs(), restored.inputs());
-        assertEquals(1L, deployments.findPage(1, 20).totalElements());
-        assertEquals(created.id(), deployments.findPage(1, 20).items().getFirst().id());
+        assertEquals(1L, deployments.findPage(1, 20, "").totalElements());
+        assertEquals(created.id(), deployments.findPage(1, 20, "").items().getFirst().id());
         jdbc.update("INSERT INTO model_runtime.platform_provider_model_discovery VALUES (?, ?, 1, TRUE, 'SYNTHETIC_OK', 0, ?, ?)",
                 connectionId.value() + 10, connectionId.value(), java.sql.Timestamp.from(CREATED_AT.plusSeconds(1)), java.sql.Timestamp.from(CREATED_AT.plusSeconds(3600)));
         assertThrows(com.aiplatform.foundation.shared.kernel.error.ApplicationException.class,
@@ -246,6 +246,44 @@ class PostgresPlatformModelDeploymentRepositoryTest {
         org.junit.jupiter.api.Assertions.assertNull(deployments.findById(saved.deployment().id()).orElseThrow().inputs().candidateDisplayName());
         assertEquals(1L, jdbc.queryForObject("SELECT count(*) FROM model_runtime.platform_discovered_model WHERE display_name IS NULL", Long.class));
         assertEquals(1L, jdbc.queryForObject("SELECT count(*) FROM model_runtime.platform_model_candidate_confirmation", Long.class));
+    }
+
+    @Test void 名称搜索先筛选再分页且同时间按编号稳定排序() {
+        var ids = new java.util.ArrayList<PlatformModelDeploymentId>();
+        for (int i = 0; i < 21; i++) ids.add(deployments.create(creation("directory-search-" + i, "b".repeat(64), "北区部署" + i)).deployment().id());
+        deployments.create(creation("directory-noise-01", "c".repeat(64), "其他部署"));
+        var first = deployments.findPage(1, 10, "北区");
+        var last = deployments.findPage(3, 10, "北区");
+        assertEquals(21L, first.totalElements()); assertEquals(21L, last.totalElements());
+        assertEquals(10, first.items().size()); assertEquals(1, last.items().size());
+        assertEquals(ids.getLast(), first.items().getFirst().id());
+        assertEquals(ids.getFirst(), last.items().getFirst().id());
+        assertTrue(deployments.findPage(4, 10, "北区").items().isEmpty());
+        assertEquals(21L, deployments.findPage(4, 10, "北区").totalElements());
+        assertEquals(22L, deployments.counts().total());
+    }
+
+    @Test void 驻留和名称按字面不区分大小写且不搜索其他投影字段() {
+        var first = deployments.create(creation("directory-literal-01", "d".repeat(64), "字面%_\\Alpha")).deployment();
+        deployments.create(creation("directory-literal-02", "e".repeat(64), "另一普通部署"));
+        jdbc.update("UPDATE model_runtime.platform_model_deployment SET residency = ? WHERE id = ?", "华北%_\\Local", first.id().value());
+        for (var q : new String[]{"alpha", "ALPHA", "%_\\", "华北", "local"}) {
+            var page = deployments.findPage(1, 20, q);
+            assertEquals(q.equals("local") ? 2L : 1L, page.totalElements(), q);
+            assertTrue(page.items().stream().anyMatch(item -> item.id().equals(first.id())));
+        }
+        for (var q : new String[]{"DRAFT", "EMBEDDING", "deterministic-embedding", "合成资料", "查看", "' OR 1=1 --", "不存在"})
+            assertEquals(0L, deployments.findPage(1, 20, q).totalElements(), q);
+        jdbc.update("UPDATE model_runtime.platform_model_deployment SET parameter_source = NULL, residency = NULL, planned_tenant_ids = NULL, candidate_discovery_id = NULL, candidate_display_name = NULL, candidate_classification = NULL, declared_by_subject_id = NULL, declared_at = NULL WHERE id = ?", first.id().value());
+        assertEquals(0L, deployments.findPage(1, 20, "暂未取得").totalElements());
+        assertEquals(0L, deployments.findPage(1, 20, "华北").totalElements());
+    }
+
+    @Test void 平台目录分页偏移有界且保留真实总数() {
+        deployments.create(creation("directory-bound-01", "a".repeat(64), "边界部署"));
+        assertEquals(1L, deployments.findPage(10001, 10, "").totalElements());
+        assertThrows(IllegalArgumentException.class, () -> deployments.findPage(10002, 10, ""));
+        assertThrows(IllegalArgumentException.class, () -> deployments.findPage(Long.MAX_VALUE, 100, ""));
     }
 
     private PlatformModelDeploymentCreation creation(String idempotencyKey, String fingerprint, String displayName) {

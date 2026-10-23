@@ -3,8 +3,8 @@ import { ApiRequestError, type ControlPlaneClient, type PlatformDeploymentPageFa
 type Reader = Pick<ControlPlaneClient, "listPlatformModelDeployments" | "getPlatformModelDeployment" | "getPlatformDeploymentPageFacts">;
 
 /** 主读取和全部安全拒绝失败关闭；仅辅助网络／5xx 可降级，不能用旧摘要补齐。 */
-export async function readPlatformDeployments(client: Reader, target: { id: string } | { page: number; size: number }) {
-  const main = "id" in target ? client.getPlatformModelDeployment(target.id) : client.listPlatformModelDeployments(target.page, target.size);
+export async function readPlatformDeployments(client: Reader, target: { id: string } | { page: number; size: number; query?: string }) {
+  const main = "id" in target ? client.getPlatformModelDeployment(target.id) : client.listPlatformModelDeployments(target.page, target.size, target.query ?? "");
   const reads = [main, client.getPlatformDeploymentPageFacts()] as const;
   const results = await settleDeploymentReads(reads);
   for (const result of results) if (result.status === "rejected" && result.reason instanceof ApiRequestError

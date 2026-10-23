@@ -10,6 +10,8 @@ test("S2 默认不扩大发现、推理或发布授权", () => {
   for (const pathname of ["/api/v1/platform/model-supply/deployments/11/probe", "/api/v1/platform/model-supply/deployments/11/publish", "/api/v1/platform/tenants", "/api/v1/model-configurations"])
     assert.equal(permittedMutation("POST", pathname, "create-draft", true, 0), false);
   assert.equal(permittedMutation("POST", "/api/v1/platform/model-supply/deployments", "read-only", true, 0), false);
+  assert.equal(permittedMutation("POST", "/api/v1/platform/model-supply/deployments", "directory-search", true, 0), false);
+  assert.equal(permittedMutation("POST", "/api/v1/platform/model-supply/deployments/11/probe", "directory-search", true, 0), false);
   assert.equal(permittedMutation("POST", "/api/v1/platform/model-supply/deployments", "create-draft", false, 0), false);
   assert.equal(permittedMutation("POST", "/api/v1/platform/model-supply/deployments", "create-draft", true, 0), true);
   assert.equal(permittedMutation("POST", "/api/v1/platform/model-supply/deployments", "create-draft", true, 1), false);

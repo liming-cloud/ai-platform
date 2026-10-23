@@ -1864,9 +1864,12 @@ export class ControlPlaneClient {
   async listPlatformModelDeployments(
     pageNumber = 1,
     pageSize = 20,
+    q = "",
   ): Promise<PageResult<PlatformModelDeploymentSummary>> {
+    const parameters = new URLSearchParams({ pageNumber: String(pageNumber), pageSize: String(pageSize) });
+    if (q) parameters.set("q", q);
     return this.request<PageResult<PlatformModelDeploymentSummary>>(
-      `/platform/model-supply/deployments?pageNumber=${pageNumber}&pageSize=${pageSize}`,
+      `/platform/model-supply/deployments?${parameters}`,
     );
   }
 

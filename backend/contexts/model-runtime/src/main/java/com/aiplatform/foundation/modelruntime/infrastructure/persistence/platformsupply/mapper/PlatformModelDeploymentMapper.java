@@ -18,8 +18,10 @@ public interface PlatformModelDeploymentMapper extends com.baomidou.mybatisplus.
     Long lockSource(@Param("id") long id, @Param("revision") long revision, @Param("now") Instant now);
     /** 精确读取，不返回首个部署。 */
     PlatformModelDeploymentRow selectById(@Param("id") long id);
-    /** 普通页码、页大小与总数。 */
-    IPage<PlatformModelDeploymentRow> selectPage(IPage<PlatformModelDeploymentRow> page);
+    /** 固定公开投影，范围／搜索／排序由 infrastructure 白名单条件构造，分页及总数由插件生成。 */
+    IPage<PlatformModelDeploymentRow> selectDirectoryPage(IPage<PlatformModelDeploymentRow> page,
+            @Param(com.baomidou.mybatisplus.core.toolkit.Constants.WRAPPER)
+            com.baomidou.mybatisplus.core.conditions.Wrapper<com.aiplatform.foundation.modelruntime.infrastructure.persistence.platformsupply.entity.PlatformModelDeploymentEntity> filter);
     /** 保存新声明，不写租户目录、配置或授权。 */
     int insertDeployment(@Param("d") PlatformModelDeployment deployment, @Param("capabilities") String capabilities,
             @Param("tenants") String tenants);

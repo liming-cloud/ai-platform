@@ -28,6 +28,18 @@ import org.springframework.web.method.support.ModelAndViewContainer;
 class PlatformModelDeploymentControllerTest {
 
     @Test
+    void 超长目录搜索在读取前拒绝() {
+        var service = mock(PlatformModelDeploymentService.class);
+        var mvc = MockMvcBuilders.standaloneSetup(new PlatformModelDeploymentController(service))
+                .setCustomArgumentResolvers(platformContext(mock(PlatformRequestContext.class))).build();
+        var error = org.junit.jupiter.api.Assertions.assertThrows(jakarta.servlet.ServletException.class,
+                () -> mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .get("/api/v1/platform/model-supply/deployments").param("q", "中".repeat(65))));
+        org.junit.jupiter.api.Assertions.assertInstanceOf(IllegalArgumentException.class, error.getCause());
+        org.mockito.Mockito.verifyNoInteractions(service);
+    }
+
+    @Test
     void 停用只从平台会话恢复身份并返回安全部署摘要() throws Exception {
         var service = mock(PlatformModelDeploymentService.class);
         var context = mock(PlatformRequestContext.class);

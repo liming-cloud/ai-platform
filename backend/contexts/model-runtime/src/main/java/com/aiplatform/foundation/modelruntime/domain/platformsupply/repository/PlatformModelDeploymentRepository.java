@@ -12,6 +12,7 @@ public interface PlatformModelDeploymentRepository {
     Optional<java.time.Instant> lastVerifiedAt(PlatformModelDeploymentId id);
     PlatformModelDeploymentCreationOutcome create(PlatformModelDeploymentCreation creation);
     Optional<PlatformModelDeployment> findById(PlatformModelDeploymentId id);
-    PlatformModelDeploymentPage findPage(long pageNumber, long pageSize);
+    /** 名称／驻留的字面搜索在分页前执行，数据与总数保持同一范围。 */
+    PlatformModelDeploymentPage findPage(long pageNumber, long pageSize, String q);
     boolean update(PlatformModelDeployment deployment, long expectedVersion);
 }

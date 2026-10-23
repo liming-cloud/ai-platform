@@ -10,6 +10,17 @@ function reader(overrides = {}) { return { getPlatformModelDeployment: async () 
   listPlatformModelDeployments: async () => ({ items: [deployment], pageNumber: 1, pageSize: 20, totalElements: 1, totalPages: 1, hasNext: false, hasPrevious: false }), ...overrides } as Pick<ControlPlaneClient, "getPlatformModelDeployment" | "listPlatformModelDeployments" | "getPlatformDeploymentPageFacts">; }
 const failure = (status: number) => new ApiRequestError(status, status === 0 ? "NETWORK_UNAVAILABLE" : "SYNTHETIC_ERROR", "合成错误", "trc_synthetic");
 describe("S2 页面事实", () => {
+  it("目录将查询交给服务端并保留同范围总数，不在当前页筛选", async () => {
+    const calls: unknown[][] = [];
+    const target = { page: 3, size: 10, query: "驻留 %_\\" };
+    const result = await readPlatformDeployments(reader({ listPlatformModelDeployments: async (...args: unknown[]) => {
+      calls.push(args);
+      return { items: [deployment], pageNumber: 3, pageSize: 10, totalElements: 21, totalPages: 3, hasNext: false, hasPrevious: true };
+    } }), target);
+    expect(calls).toEqual([[3, 10, target.query]]);
+    expect((result.data as { totalElements: number }).totalElements).toBe(21);
+    expect(result.facts?.counts.total).toBe(1);
+  });
   it.each([
     { deploymentRevision: 1 }, { activeGrantCount: 2 }, { activeTenantIds: ["202"] },
     { activeTenantIds: ["201", "201"] }, { currentSourceAvailable: "true" }, { catalogEntryId: "0" }

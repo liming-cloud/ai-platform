@@ -61,8 +61,9 @@ public class PlatformModelDeploymentController {
     public PageResult<PlatformModelDeploymentView> list(
             PlatformRequestContext context,
             @RequestParam(defaultValue = "1") long pageNumber,
-            @RequestParam(defaultValue = "20") long pageSize) {
-        return deployments.list(new ListPlatformModelDeploymentsQuery(context, new PageQuery(pageNumber, pageSize)));
+            @RequestParam(defaultValue = "20") long pageSize,
+            @RequestParam(defaultValue = "") String q) {
+        return deployments.list(new ListPlatformModelDeploymentsQuery(context, new PageQuery(pageNumber, pageSize), q));
     }
 
     @GetMapping("/facts")

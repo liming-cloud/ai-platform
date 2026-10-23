@@ -125,7 +125,7 @@ public final class PlatformModelDeploymentService {
     public PageResult<PlatformModelDeploymentView> list(ListPlatformModelDeploymentsQuery query) {
         Objects.requireNonNull(query, "平台模型部署列表查询不能为空");
         requirePermission(query.context());
-        var page = deployments.findPage(query.page().pageNumber(), query.page().pageSize());
+        var page = deployments.findPage(query.page().pageNumber(), query.page().pageSize(), query.q());
         return PageResult.of(page.items().stream().map(deployment -> toView(deployment,
                 connections.findById(deployment.providerConnectionId()).orElse(null), clock.instant())).toList(),
                 query.page(), page.totalElements());

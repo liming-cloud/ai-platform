@@ -3,7 +3,7 @@ import { Button, Dialog, DialogSurface } from "@fluentui/react-components";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiRequestError, type ControlPlaneClient, type PageResult, type PlatformModelDeploymentSummary } from "../../api/control-plane-client";
 import { formatConsoleRoute, type ConsoleRoute } from "../../session/console-route";
-import { PlatformConnectionPagination } from "./PlatformConnectionPagination";
+import { PlatformConnectionPagination, PlatformConnectionSearch } from "./PlatformConnectionPagination";
 import { PlatformModelDeploymentForm, typeLabel } from "./PlatformModelDeploymentForm";
 import { displayedSupplyTenantIds, readPlatformDeployments, settleDeploymentReads } from "./platform-deployment-read";
 import "./platform-model-connections.css";
@@ -17,14 +17,18 @@ type WorkspaceProps = {
   onRouteChange: (route: ConsoleRoute, replace?: boolean) => void;
 };
 
-/** 规范 URL 与会话共同拥有投影，切换时同步撤下旧状态，不能等待 effect 后才清理。 */
+/** 会话与精确对象切换时卸载；同目录查询保留输入节点，不中断连续输入。 */
 export function PlatformModelDeploymentWorkspace(props: WorkspaceProps) {
-  return <PlatformDeploymentPage key={`${props.sessionRevision}:${formatConsoleRoute(props.route)}`} {...props} />;
+  return <PlatformDeploymentPage key={`${props.sessionRevision}:${props.route.task}:${props.route.task === "deployment-detail" ? props.route.deploymentId : "directory"}`} {...props} />;
 }
 
 /** 目录和精确对象各自拥有读取、焦点和表单状态，迟到响应不能跨页面恢复。 */
 function PlatformDeploymentPage({ client, route, sessionRevision, onRouteChange }: WorkspaceProps) {
-  const [state, setState] = useState<ReadState>("loading");
+  const location = formatConsoleRoute(route);
+  const [readLocation, setReadLocation] = useState(location);
+  const [readState, setState] = useState<ReadState>("loading");
+  // URL 改变后立即隐藏旧投影；effect 尚未开始也不能显示或操作旧查询结果。
+  const state = readLocation === location ? readState : "loading";
   const [result, setResult] = useState<Awaited<ReturnType<typeof readPlatformDeployments>>>();
   const [creating, setCreating] = useState(false);
   const [creatingBusy, setCreatingBusy] = useState(false);
@@ -36,11 +40,12 @@ function PlatformDeploymentPage({ client, route, sessionRevision, onRouteChange 
   const detail = route.task === "deployment-detail";
   const load = useCallback(async () => {
     const token = ++owner.current;
+    setReadLocation(formatConsoleRoute(route));
     setCreating(false); setCreatingBusy(false); focused.current = false; setFeedback(""); setResult(undefined); setTenantNames(undefined); setState("loading"); setBusy(true);
     if (!client.hasSession()) { setState("stale"); setBusy(false); return; }
     try {
       const read = await readPlatformDeployments(client, route.task === "deployment-detail" ? { id: route.deploymentId }
-        : { page: route.deploymentPage, size: route.pageSize ?? 20 });
+        : { page: route.deploymentPage, size: route.pageSize ?? 20, query: route.query });
       if (token !== owner.current) return;
       let kind = read.kind;
       if (route.task === "deployment-detail") {
@@ -87,13 +92,16 @@ function PlatformDeploymentPage({ client, route, sessionRevision, onRouteChange 
   }, [load, sessionRevision]);
   useEffect(() => {
     if (state === "loading" || focused.current) return;
-    const frame = window.requestAnimationFrame(() => { heading.current?.focus(); focused.current = true; });
+    const frame = window.requestAnimationFrame(() => {
+      if (!document.activeElement?.matches(".platform-connection-search input")) heading.current?.focus();
+      focused.current = true;
+    });
     return () => window.cancelAnimationFrame(frame);
   }, [state]);
 
   const directory = { navigationId: "platform-model-supply", task: "deployments", candidatePage: 1,
     deploymentPage: route.task === "deployment-detail" ? route.directoryPage ?? 1 : route.deploymentPage,
-    pageSize: route.pageSize ?? 20 } as const;
+    pageSize: route.pageSize ?? 20, query: route.query } as const;
   const page = !detail && result ? result.data as PageResult<PlatformModelDeploymentSummary> : undefined;
   const deployment = detail && result ? result.data as PlatformModelDeploymentSummary : undefined;
   const readable = state === "ready" || state === "partial" || state === "disabled";
@@ -125,16 +133,18 @@ function PlatformDeploymentPage({ client, route, sessionRevision, onRouteChange 
         : <Button className="platform-connection-create" appearance="primary" disabled={!writable} onClick={() => setCreating(true)}>建立部署草稿</Button>}
     </header>
     <PlatformModelSupplyNavigation active="deployments" onRouteChange={onRouteChange} />
+    {readable ? <div className="platform-connection-note" role={state === "partial" ? "status" : undefined}>
+      {state === "partial" ? <><p>{detail ? "租户授权事实暂未取得，本页只读；不能发布或扩大授权。" : "授权摘要暂未取得，本页暂为只读；已确认的部署仍可查看。"}</p><Button appearance="secondary" onClick={() => void load()}>重新载入</Button></>
+        : detail ? "冻结连接版本、模型能力、拟授权租户和驻留范围后执行验证。" : "平台部署发布后只进入可授权目录，不会自动授予未选择的租户，也不会修改租户配置、索引或助手。"}
+    </div> : null}
+    {!detail && (readable || state === "loading") ? <PlatformConnectionSearch query={route.query ?? ""}
+      onChange={query => onRouteChange({ ...directory, query, deploymentPage: 1 })} /> : null}
     {!readable ? <ReadState kind={state} detail={detail} onRetry={() => void load()} /> : <>
-      <div className="platform-connection-note" role={state === "partial" ? "status" : undefined}>
-        {state === "partial" ? <><p>{detail ? "租户授权事实暂未取得，本页只读；不能发布或扩大授权。" : "授权摘要暂未取得，本页暂为只读；已确认的部署仍可查看。"}</p><Button appearance="secondary" onClick={() => void load()}>重新载入</Button></>
-          : detail ? "冻结连接版本、模型能力、拟授权租户和驻留范围后执行验证。" : "平台部署发布后只进入可授权目录，不会自动授予未选择的租户，也不会修改租户配置、索引或助手。"}
-      </div>
-      {page ? page.items.length === 0 ? <ReadState kind="empty" detail={false} onRetry={() => void load()} /> : <div className="platform-connection-table" role="region" aria-label="平台模型部署目录">
-        <table><thead><tr>{["部署", "能力", "授权范围", "状态", "操作"].map(label => <th key={label} scope="col">{label}</th>)}</tr></thead><tbody>{page.items.map(item => <tr key={item.id}>
+      {page ? page.items.length === 0 && !route.query?.trim() ? <ReadState kind="empty" detail={false} onRetry={() => void load()} /> : <div className="platform-connection-table" role="region" aria-label="平台模型部署目录">
+        <table><thead><tr>{["部署", "能力", "授权范围", "状态", "操作"].map(label => <th key={label} scope="col">{label}</th>)}</tr></thead><tbody>{page.items.length === 0 ? <tr><td colSpan={5}>没有匹配记录，请调整筛选条件或返回目录。</td></tr> : page.items.map(item => <tr key={item.id}>
           <td data-label="部署"><strong>{item.displayName}</strong><small className="deployment-residency">{item.inputs?.residency ?? "驻留范围暂未取得"}</small></td>
           <td data-label="能力">{typeLabel(item.modelType)}</td><td data-label="授权范围">{state === "partial" || !displayedSupplyTenantIds(item) ? "暂未取得" : `${item.status === "DRAFT" || item.status === "VERIFIED" ? "拟授权 " : ""}${displayedSupplyTenantIds(item)!.length} 个租户`}</td>
-          <td data-label="状态"><DeploymentStatus deployment={item} /></td><td data-label="操作"><Button appearance="subtle" aria-label={`查看${item.displayName}`} onClick={() => onRouteChange({ navigationId: "platform-model-supply", task: "deployment-detail", deploymentId: item.id, directoryPage: page.pageNumber, pageSize: directory.pageSize })}>查看</Button></td>
+          <td data-label="状态"><DeploymentStatus deployment={item} /></td><td data-label="操作"><Button appearance="subtle" aria-label={`查看${item.displayName}`} onClick={() => onRouteChange({ navigationId: "platform-model-supply", task: "deployment-detail", deploymentId: item.id, directoryPage: page.pageNumber, pageSize: directory.pageSize, query: route.query })}>查看</Button></td>
         </tr>)}</tbody></table><PlatformConnectionPagination label="平台模型部署分页" total={page.totalElements} page={page.pageNumber} size={directory.pageSize} disabled={busy}
           onChange={(deploymentPage, pageSize) => onRouteChange({ ...directory, deploymentPage, pageSize })} /></div> : null}
       {deployment ? <div className="platform-connection-detail"><div><section className="platform-connection-section platform-connection-section--facts"><div className="platform-connection-section__heading"><div><span className="platform-connection-kicker">平台部署</span><h2>{deployment.displayName}</h2></div><DeploymentStatus deployment={deployment} /></div>
@@ -151,8 +161,8 @@ function PlatformDeploymentPage({ client, route, sessionRevision, onRouteChange 
             {deployment.status === "PUBLISHED" ? "返回部署目录" : deployment.status === "VERIFIED" ? "发布部署" : "执行能力验证"}</Button></div>{feedback ? <p className="deployment-feedback" role="alert">{feedback}</p> : null}
         </section></aside></div> : null}
     </>}
-    <Dialog open={creating} onOpenChange={(_, data) => { if (!data.open && !creatingBusy) setCreating(false); }}><DialogSurface className="foundation-task-dialog platform-deployment-dialog" backdrop={{ className: "platform-connection-backdrop" }}>
-      {creating ? <PlatformModelDeploymentForm client={client} onSavingChange={setCreatingBusy} onClose={() => setCreating(false)} onCreated={id => { setCreating(false); onRouteChange({ navigationId: "platform-model-supply", task: "deployment-detail", deploymentId: id, directoryPage: directory.deploymentPage, pageSize: directory.pageSize }); }} /> : null}
+    <Dialog open={creating && readable} onOpenChange={(_, data) => { if (!data.open && !creatingBusy) setCreating(false); }}><DialogSurface className="foundation-task-dialog platform-deployment-dialog" backdrop={{ className: "platform-connection-backdrop" }}>
+      {creating && readable ? <PlatformModelDeploymentForm client={client} onSavingChange={setCreatingBusy} onClose={() => setCreating(false)} onCreated={id => { setCreating(false); onRouteChange({ navigationId: "platform-model-supply", task: "deployment-detail", deploymentId: id, directoryPage: directory.deploymentPage, pageSize: directory.pageSize, query: route.query }); }} /> : null}
     </DialogSurface></Dialog>
   </div>;
 }
