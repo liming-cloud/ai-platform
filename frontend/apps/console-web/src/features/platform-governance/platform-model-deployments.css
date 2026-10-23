@@ -28,6 +28,8 @@
 .platform-deployment-dialog .platform-connection-note { padding: 0.75rem 1rem; border: 1px solid var(--foundation-border); border-radius: var(--foundation-control-radius); background: var(--foundation-subtle-surface); font-size: 1rem; }
 .platform-deployment-page .platform-connection-status[data-tone="info"] { background: var(--foundation-subtle-surface); }
 @media (max-width: 1023px) { .platform-deployment-page .platform-connection-detail { grid-template-columns: minmax(0, 1fr); } }
+/* 原型手机工具栏占满内容宽度，不能继续保留桌面的 22rem 上限。 */
+@media (max-width: 680px) { .platform-deployment-page .platform-connection-search label { width: 100%; } }
 @media (max-width: 640px) {
   .foundation-task-dialog.platform-deployment-dialog { padding: 1rem; }
   .deployment-parameter-grid { grid-template-columns: minmax(0, 1fr); }

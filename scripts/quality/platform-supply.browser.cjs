@@ -100,6 +100,10 @@ test("S2 搜索连续输入、分页重置和零匹配恢复", async () => {
   const { page, errors, writes } = await open("search");
   try {
     const search = page.getByRole("searchbox", { name: "搜索当前目录" });
+    await page.setViewportSize({ width: 390, height: 1000 });
+    assert.equal(await search.evaluate(input => input.getBoundingClientRect().width),
+      await page.locator('.platform-connection-search').evaluate(region => region.getBoundingClientRect().width), "手机搜索框沿用原型全宽字段");
+    await page.setViewportSize({ width: 1440, height: 1000 });
     await search.focus(); await search.pressSequentially("合成", { delay: 30 });
     await page.waitForFunction(() => window.route.query === "合成" && document.querySelector('.platform-deployment-page')?.dataset.readState === "ready");
     assert.equal(await search.inputValue(), "合成"); assert.equal(await search.evaluate(input => document.activeElement === input), true);
